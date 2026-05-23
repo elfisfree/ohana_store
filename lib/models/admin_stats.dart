@@ -3,8 +3,8 @@ class AdminStats {
   final double totalRevenue;
   final int totalCustomers;
   final int pendingOrders;
-  final double avgCheck; // <-- Новое
-  final double revenueToday; // <-- Новое
+  final double avgCheck;
+  final double revenueToday;
 
   AdminStats({
     required this.totalOrders,

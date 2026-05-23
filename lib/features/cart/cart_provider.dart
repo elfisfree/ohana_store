@@ -39,7 +39,11 @@ class CartProvider extends ChangeNotifier {
       }
       final response = await supabase
           .from('cart_items')
-          .select('*, products(*, brands(*))')
+          .select('''
+            *, 
+            products(*, brands(*)), 
+            product_variants!variant_id(*)
+          ''')
           .eq('user_id', userId);
 
       _items = response.map((item) => CartItem.fromJson(item)).toList();

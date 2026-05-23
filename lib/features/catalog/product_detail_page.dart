@@ -1,7 +1,11 @@
 // lib/features/catalog/product_detail_page.dart
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:intl/intl.dart';
+// ignore: unused_import
+import 'package:ohana_store/core/admin_theme.dart';
 import 'package:ohana_store/core/utils/app_notifications.dart';
 import 'package:ohana_store/main.dart';
 import 'package:ohana_store/models/product.dart';
@@ -45,8 +49,9 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   late final Future<(Product, List<ReviewDisplay>)> _dataFuture;
+  int _selectedVariantIndex = 0;
+  double? _selectedSize;
   int _currentPageIndex = 0;
-  int? _selectedSize;
   bool _isAddingToCart = false;
 
   @override
@@ -58,7 +63,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Future<(Product, List<ReviewDisplay>)> _fetchProductData() async {
     try {
       final results = await Future.wait<dynamic>([
-        // 1. Загружаем товар со ВСЕМИ связями
         supabase
             .from('products')
             .select('''
@@ -67,12 +71,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             product_types(*),
             styles(*),
             materials(*),
-            product_tags(tags(*))
+            product_tags(tags(*)),
+            product_variants(
+              *,
+              product_stock(*)
+            )
           ''')
             .eq('id', widget.productId)
             .single(),
 
-        // 2. Загружаем отзывы через наш View
         supabase
             .from('reviews_with_users')
             .select()
@@ -95,23 +102,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Future<void> _addToCart(Product product) async {
     if (_selectedSize == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Пожалуйста, выберите размер'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppNotifications.showError(context, 'Пожалуйста, выберите размер');
       return;
     }
+
+    final currentVariant = product.variants[_selectedVariantIndex];
+
     setState(() => _isAddingToCart = true);
     try {
       final userId = supabase.auth.currentUser!.id;
+
       await supabase.from('cart_items').insert({
         'user_id': userId,
         'product_id': product.id,
+        'variant_id': currentVariant.id,
         'quantity': 1,
         'size': _selectedSize,
       });
+
       if (mounted) {
         AppNotifications.showSuccess(context, 'Товар добавлен в корзину!');
       }
@@ -142,7 +150,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           if (snapshot.hasError) {
             return Center(child: Text('Ошибка: ${snapshot.error}'));
           }
+
           final (product, reviews) = snapshot.data!;
+          if (product.variants.isEmpty) {
+            return const Center(
+              child: Text('У товара нет доступных вариантов'),
+            );
+          }
+          final currentVariant = product.variants[_selectedVariantIndex];
+
           final f = NumberFormat.currency(
             locale: 'ru_RU',
             symbol: '₽',
@@ -157,26 +173,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ГАЛЕРЕЯ
-                      if (product.imageUrls.isNotEmpty)
+                      if (currentVariant.imageUrls.isNotEmpty)
                         SizedBox(
                           height: 350,
                           child: PageView.builder(
+                            key: ValueKey(currentVariant.id),
                             onPageChanged: (index) =>
                                 setState(() => _currentPageIndex = index),
-                            itemCount: product.imageUrls.length,
+                            itemCount: currentVariant.imageUrls.length,
                             itemBuilder: (context, index) => Image.network(
-                              product.imageUrls[index],
+                              currentVariant.imageUrls[index],
                               fit: BoxFit.contain,
                             ),
                           ),
                         ),
-                      // ИНДИКАТОРЫ
-                      if (product.imageUrls.length > 1)
+                      if (currentVariant.imageUrls.length > 1)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: List.generate(
-                            product.imageUrls.length,
+                            currentVariant.imageUrls.length,
                             (index) => AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -193,8 +208,65 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ),
 
                       const SizedBox(height: 20),
-
-                      // БРЕНД И НАЗВАНИЕ
+                      if (product.variants.length > 1) ...[
+                        const Text(
+                          'ЦВЕТ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: 50,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: product.variants.length,
+                            itemBuilder: (context, index) {
+                              final variant = product.variants[index];
+                              final bool isSelected =
+                                  _selectedVariantIndex == index;
+                              return GestureDetector(
+                                onTap: () => setState(() {
+                                  _selectedVariantIndex = index;
+                                  _selectedSize = null;
+                                  _currentPageIndex = 0;
+                                }),
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Colors.black
+                                        : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? Colors.black
+                                          : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    variant.colorName.toUpperCase(),
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                       Text(
                         product.brand?.name.toUpperCase() ?? '',
                         style: const TextStyle(
@@ -211,8 +283,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
-                      // ЦЕНА И РЕЙТИНГ
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -244,8 +314,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             ),
                         ],
                       ),
-
-                      // ТЕГИ
                       if (product.tags.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         Wrap(
@@ -276,8 +344,70 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ],
 
                       const Divider(height: 40),
+                      const Text(
+                        'ВЫБЕРИТЕ РАЗМЕР',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: currentVariant.stock.map((stockItem) {
+                          final bool isSelected =
+                              _selectedSize == stockItem.size;
+                          final bool isOutOfStock = stockItem.quantity <= 0;
 
-                      // ХАРАКТЕРИСТИКИ
+                          return ChoiceChip(
+                            label: Text(
+                              stockItem.size.toString().replaceAll('.0', ''),
+                              style: TextStyle(
+                                color: isOutOfStock
+                                    ? Colors.grey
+                                    : (isSelected
+                                          ? Colors.white
+                                          : Colors.black),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            selected: isSelected,
+                            onSelected: isOutOfStock
+                                ? null
+                                : (selected) {
+                                    setState(
+                                      () => _selectedSize = selected
+                                          ? stockItem.size
+                                          : null,
+                                    );
+                                  },
+                            showCheckmark: false,
+                            selectedColor: Colors.black,
+                            backgroundColor: Colors.white,
+                            disabledColor: Colors.grey.shade100,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? Colors.black
+                                    : (isOutOfStock
+                                          ? Colors.transparent
+                                          : Colors.grey.shade300),
+                                width: 2,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
+                      if (currentVariant.stock.isEmpty)
+                        const Text(
+                          'Размеры отсутствуют',
+                          style: TextStyle(color: Colors.red, fontSize: 12),
+                        ),
+
+                      const SizedBox(height: 30),
                       const Text(
                         'ХАРАКТЕРИСТИКИ',
                         style: TextStyle(
@@ -301,58 +431,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
 
                       const SizedBox(height: 30),
-
-                      // ВЫБОР РАЗМЕРА
-                      const Text(
-                        'ВЫБЕРИТЕ РАЗМЕР',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        children: product.availableSizes.map((size) {
-                          final isSelected = _selectedSize == size;
-                          return ChoiceChip(
-                            label: Text(
-                              size.toString(),
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            selected: isSelected,
-                            selectedColor: Colors.black, // Цвет фона при выборе
-                            backgroundColor:
-                                Colors.white, // Цвет фона в обычном состоянии
-                            // --- ГЛАВНОЕ ИЗМЕНЕНИЕ: Убираем галочку ---
-                            showCheckmark: false,
-                            // ------------------------------------------
-
-                            // Добавляем красивую рамку
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              side: BorderSide(
-                                color: isSelected
-                                    ? Colors.black
-                                    : Colors.grey.shade300,
-                                width: 2,
-                              ),
-                            ),
-                            onSelected: (selected) {
-                              setState(() {
-                                _selectedSize = selected ? size : null;
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      // ОПИСАНИЕ
                       const Text(
                         'ОПИСАНИЕ',
                         style: TextStyle(
@@ -371,8 +449,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
 
                       const Divider(height: 60),
-
-                      // ОТЗЫВЫ
                       Text(
                         'ОТЗЫВЫ (${reviews.length})',
                         style: const TextStyle(
@@ -438,8 +514,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                 ),
               ),
-
-              // КНОПКА "ДОБАВИТЬ В КОРЗИНУ"
               if (!widget.isAdmin)
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -447,7 +521,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: .05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, -5),
                       ),

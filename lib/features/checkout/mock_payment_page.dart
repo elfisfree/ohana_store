@@ -21,12 +21,9 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
 
   Future<void> _processPayment() async {
     setState(() => _isProcessing = true);
-
-    // Имитируем задержку банка
     await Future.delayed(const Duration(seconds: 2));
 
     try {
-      // Обновляем статус в базе данных
       await supabase
           .from('orders')
           .update({'payment_status': 'succeeded'})
@@ -34,7 +31,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
 
       if (mounted) {
         AppNotifications.showSuccess(context, 'Оплата прошла успешно!');
-        Navigator.of(context).pop(true); // Возвращаем успех
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) AppNotifications.showError(context, 'Ошибка оплаты: $e');

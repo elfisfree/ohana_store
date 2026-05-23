@@ -49,9 +49,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _addressController = TextEditingController();
 
   List<UserAddress> _userAddresses = [];
-  String? _selectedAddressId; // Хранит ID выбранного адреса
-
-  //final _formKey = GlobalKey<FormState>();
+  String? _selectedAddressId;
   bool _isConfirming = false;
 
   double _subtotal = 0.0;
@@ -129,7 +127,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Future<void> _fetchInitialData({bool selectLastAddress = false}) async {
-    // ... (код try/catch)
     try {
       final userId = supabase.auth.currentUser!.id;
       final results = await Future.wait([
@@ -155,7 +152,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         setState(() {
           _selectedItems = items;
           _userAddresses = addresses;
-          // Если есть адреса, выбираем первый по умолчанию
           if (_userAddresses.isNotEmpty) {
             _selectedAddressId = selectLastAddress
                 ? _userAddresses.last.id
@@ -178,8 +174,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Future<void> _showAddAddressDialog() async {
     final newAddress = await showDialog<Map<String, String>>(
       context: context,
-      builder: (context) =>
-          const _AddAddressDialog(), // Используем тот же диалог
+      builder: (context) => const _AddAddressDialog(),
     );
 
     if (newAddress != null && mounted) {
@@ -189,7 +184,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'name': newAddress['name'],
           'address_line': newAddress['address'],
         });
-        // Перезагружаем данные, чтобы новый адрес появился в списке и был выбран
         await _fetchInitialData(selectLastAddress: true);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -254,7 +248,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     setState(() => _isConfirming = true);
 
     try {
-      // 1. Создаем заказ в базе (он создается со статусом payment_status = 'pending')
       final newOrderId = await supabase.rpc(
         'create_order_from_cart',
         params: {
@@ -264,15 +257,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'p_promocode_id': _appliedPromocode?.id,
         },
       );
-
-      // Обновляем корзину
       await context.read<CartProvider>().fetchCartItems();
 
       if (!mounted) return;
-
-      // --- ГЛАВНАЯ ЛОГИКА ТУТ ---
       if (_paymentMethod == PaymentMethod.online) {
-        // 2а. Если выбрали ОНЛАЙН: переходим на страницу оплаты
         // ignore: unused_local_variable
         final bool? paid = await Navigator.push<bool>(
           context,
@@ -283,13 +271,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
           ),
         );
-
-        // Если оплата прошла успешно (или пользователь закрыл страницу после оплаты)
         if (mounted) {
           context.go('/order-success/$newOrderId');
         }
       } else {
-        // 2б. Если выбрали "ПРИ ПОЛУЧЕНИИ": сразу на страницу успеха
         context.go('/order-success/$newOrderId');
       }
     } catch (e) {
@@ -351,9 +336,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             decoration: _inputDecoration(
                               'Выберите адрес доставки',
                             ),
-                            isExpanded: true, // Растягиваем на всю ширину
+                            isExpanded: true,
                             items: [
-                              // Формируем список из сохраненных адресов
                               ..._userAddresses.map(
                                 (addr) => DropdownMenuItem(
                                   value: addr.id,
@@ -363,10 +347,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                   ),
                                 ),
                               ),
-                              // Добавляем специальный пункт для создания нового адреса
                               DropdownMenuItem(
-                                value:
-                                    _addNewAddressValue, // Наша статическая переменная
+                                value: _addNewAddressValue,
                                 child: Row(
                                   children: [
                                     Icon(
@@ -381,10 +363,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             ],
                             onChanged: (value) {
                               if (value == _addNewAddressValue) {
-                                // Если выбрали "Добавить", показываем диалог
                                 _showAddAddressDialog();
                               } else {
-                                // Иначе просто обновляем выбранный ID
                                 setState(() => _selectedAddressId = value);
                               }
                             },
@@ -393,8 +373,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 : null,
                           ),
                         ),
-
-                      // ---------------------------------------------
                       const SizedBox(height: 30),
                       _buildSectionTitle('Способ оплаты'),
                       const SizedBox(height: 10),
@@ -457,6 +435,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Widget _buildItemTile(CartItem item, NumberFormat f) {
+    String imageUrl = "";
+    if (item.variant != null && item.variant!.imageUrls.isNotEmpty) {
+      imageUrl = item.variant!.imageUrls.first;
+    } else if (item.product.variants.isNotEmpty &&
+        item.product.variants.first.imageUrls.isNotEmpty) {
+      imageUrl = item.product.variants.first.imageUrls.first;
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(14),
@@ -468,12 +454,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              item.product.imageUrls.first,
-              width: 70,
-              height: 70,
-              fit: BoxFit.cover,
-            ),
+            child: imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    width: 70,
+                    height: 70,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.image_not_supported),
+                  )
+                : Container(
+                    width: 70,
+                    height: 70,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.image),
+                  ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -491,8 +486,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Размер: ${item.size}',
-                  style: TextStyle(color: Colors.grey.shade600),
+                  'Цвет: ${item.variant?.colorName ?? "Стандарт"}, Размер: ${item.size.toInt()}',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
               ],
             ),
@@ -722,11 +717,10 @@ class _AddAddressDialog extends StatefulWidget {
   const _AddAddressDialog();
 
   @override
-  State<_AddAddressDialog> createState() => __AddAddressDialogState(); // <-- ИСПРАВЛЕНО
+  State<_AddAddressDialog> createState() => __AddAddressDialogState();
 }
 
 class __AddAddressDialogState extends State<_AddAddressDialog> {
-  // <-- ИСПРАВЛЕНО
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
   final _formKey = GlobalKey<FormState>();

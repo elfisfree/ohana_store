@@ -23,10 +23,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _patronymicController;
-  late final TextEditingController _dobController; // Контроллер для даты
+  late final TextEditingController _dobController;
 
   String? _selectedGender;
-  DateTime? _selectedDob; // Храним саму дату
+  DateTime? _selectedDob;
   bool _isLoading = false;
 
   @override
@@ -40,8 +40,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _patronymicController = TextEditingController(
       text: data['patronymic'] ?? '',
     );
-
-    // Инициализация даты
     if (data['date_of_birth'] != null) {
       _selectedDob = DateTime.tryParse(data['date_of_birth']);
     }
@@ -63,7 +61,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
-  // --- МЕТОД ВЫБОРА ДАТЫ ---
   Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -81,7 +78,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-  // --- ЛОГИКА ВАЛИДАЦИИ (С ПРОВЕРКОЙ ВОЗРАСТА) ---
   bool _isDataValid() {
     final nameRegExp = RegExp(r'^[a-zA-Zа-яА-ЯёЁ]+$');
 
@@ -103,7 +99,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return false;
     }
 
-    // Проверка возраста (минимум 12 лет)
     if (_selectedDob != null) {
       final now = DateTime.now();
       int age = now.year - _selectedDob!.year;
@@ -135,7 +130,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         'last_name': _lastNameController.text.trim(),
         'patronymic': _patronymicController.text.trim(),
         'gender': _selectedGender,
-        'date_of_birth': _selectedDob?.toIso8601String(), // Сохраняем дату
+        'date_of_birth': _selectedDob?.toIso8601String(),
       };
 
       final userId = supabase.auth.currentUser!.id;
@@ -188,8 +183,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     label: 'Отчество',
                   ),
                   const SizedBox(height: 20),
-
-                  // --- ПОЛЕ ДАТЫ РОЖДЕНИЯ ---
                   GestureDetector(
                     onTap: _pickDate,
                     child: AbsorbPointer(

@@ -3,7 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ohana_store/core/admin_theme.dart'; // Импортируем ваши цвета
+import 'package:ohana_store/core/admin_theme.dart';
 import 'package:ohana_store/core/utils/app_notifications.dart';
 import 'package:ohana_store/features/catalog/catalog_provider.dart';
 import 'package:ohana_store/main.dart';
@@ -18,13 +18,12 @@ class AdminProductsPage extends StatelessWidget {
     return Consumer<CatalogProvider>(
       builder: (context, provider, child) {
         return Scaffold(
-          backgroundColor: Colors.transparent, // Фон задан в AdminDesktopShell
+          backgroundColor: Colors.transparent,
           body: Padding(
             padding: const EdgeInsets.all(30.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- ВЕРХНЯЯ ПАНЕЛЬ: ЗАГОЛОВОК И КНОПКА ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -56,8 +55,6 @@ class AdminProductsPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 25),
-
-                // --- ПАНЕЛЬ ИНСТРУМЕНТОВ: ПОИСК И ФИЛЬТРЫ ---
                 Row(
                   children: [
                     Expanded(
@@ -98,8 +95,6 @@ class AdminProductsPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 25),
-
-                // --- ОСНОВНОЙ КОНТЕНТ (СЕТКА) ---
                 Expanded(child: _buildContent(context, provider)),
               ],
             ),
@@ -144,6 +139,12 @@ class AdminProductsPage extends StatelessWidget {
         ),
         itemBuilder: (context, index) {
           final product = provider.products[index];
+          String? previewUrl;
+          if (product.variants.isNotEmpty &&
+              product.variants.first.imageUrls.isNotEmpty) {
+            previewUrl = product.variants.first.imageUrls.first;
+          }
+
           return Container(
             decoration: BoxDecoration(
               color: AdminColors.card,
@@ -153,7 +154,6 @@ class AdminProductsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Изображение
                 Expanded(
                   child: Stack(
                     children: [
@@ -161,11 +161,19 @@ class AdminProductsPage extends StatelessWidget {
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(20),
                         ),
-                        child: product.imageUrls.isNotEmpty
+                        child: previewUrl != null
                             ? Image.network(
-                                product.imageUrls.first,
+                                previewUrl,
                                 width: double.infinity,
+                                height: double.infinity,
                                 fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        color: Colors.white10,
+                                      ),
+                                    ),
                               )
                             : Container(
                                 color: Colors.black26,
@@ -173,11 +181,11 @@ class AdminProductsPage extends StatelessWidget {
                                   child: Icon(
                                     Icons.image_not_supported,
                                     color: Colors.white10,
+                                    size: 40,
                                   ),
                                 ),
                               ),
                       ),
-                      // Безопасное удаление (иконка в углу)
                       Positioned(
                         top: 10,
                         right: 10,

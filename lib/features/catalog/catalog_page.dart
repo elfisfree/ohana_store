@@ -139,7 +139,6 @@ class CatalogPage extends StatelessWidget {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          //____________________________________________________________________________
           childAspectRatio: 0.60,
         ),
         itemCount: provider.products.length,

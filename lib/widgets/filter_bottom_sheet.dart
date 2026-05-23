@@ -12,7 +12,6 @@ class FilterBottomSheet extends StatefulWidget {
 }
 
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
-  // Временные переменные для хранения выбора в шторке
   late Set<String> _tempSelectedBrands;
   late Set<String> _tempSelectedTypes;
   late Set<String> _tempSelectedGenders;
@@ -25,16 +24,15 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   @override
   void initState() {
     super.initState();
-    // При открытии копируем текущие значения из провайдера
     final provider = context.read<CatalogProvider>();
     _tempSelectedBrands = Set.from(provider.selectedBrandIds);
     _tempSelectedTypes = Set.from(provider.selectedTypeIds);
     _tempSelectedGenders = Set.from(provider.selectedGenders);
     _tempSelectedStyles = Set.from(provider.selectedStyleIds);
     _tempSelectedMaterials = Set.from(provider.selectedMaterialIds);
+    _tempSelectedSizes = Set.from(provider.selectedSizes);
     _tempSortOption = provider.sortOption;
     _tempPriceRange = provider.selectedPriceRange;
-    _tempSelectedSizes = Set.from(provider.selectedSizes);
   }
 
   @override
@@ -70,29 +68,18 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
           Expanded(
             child: ListView(
               children: [
-                // --- СОРТИРОВКА ---
                 _sectionTitle('Сортировка'),
                 _buildSortSection(),
                 const Divider(),
-
-                // --- ЦЕНА ---
                 _sectionTitle('Цена'),
-                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      f.format(_tempPriceRange.start),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      f.format(_tempPriceRange.end),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    Text(f.format(_tempPriceRange.start)),
+                    Text(f.format(_tempPriceRange.end)),
                   ],
                 ),
                 RangeSlider(
@@ -103,108 +90,78 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       : 1.0,
                   divisions: 50,
                   activeColor: Theme.of(context).primaryColor,
-                  onChanged: (values) =>
-                      setState(() => _tempPriceRange = values),
+                  onChanged: (val) => setState(() => _tempPriceRange = val),
                 ),
                 const Divider(),
-
-                // --- ПОЛ ---
                 _sectionTitle('Пол'),
                 _buildGenderSection(),
                 const Divider(),
-
                 _sectionTitle('Размеры'),
                 _buildSizeSection(),
                 const Divider(),
-
-                // --- БРЕНДЫ ---
                 _sectionTitle('Бренды'),
                 _buildFilterSection(
-                  items: provider.brands
-                      .map((b) => FilterItem(b.id, b.name))
-                      .toList(),
-                  selectedItems: _tempSelectedBrands,
+                  provider.brands.map((e) => FilterItem(e.id, e.name)).toList(),
+                  _tempSelectedBrands,
                 ),
                 const Divider(),
-
-                // --- ТИП ОБУВИ ---
                 _sectionTitle('Тип обуви'),
                 _buildFilterSection(
-                  items: provider.productTypes
-                      .map((t) => FilterItem(t.id, t.name))
+                  provider.productTypes
+                      .map((e) => FilterItem(e.id, e.name))
                       .toList(),
-                  selectedItems: _tempSelectedTypes,
+                  _tempSelectedTypes,
                 ),
                 const Divider(),
-
-                // --- СТИЛЬ ---
                 _sectionTitle('Стиль'),
                 _buildFilterSection(
-                  items: provider.styles
-                      .map((s) => FilterItem(s.id, s.name))
-                      .toList(),
-                  selectedItems: _tempSelectedStyles,
+                  provider.styles.map((e) => FilterItem(e.id, e.name)).toList(),
+                  _tempSelectedStyles,
                 ),
                 const Divider(),
-
-                // --- МАТЕРИАЛ ---
                 _sectionTitle('Материал'),
                 _buildFilterSection(
-                  items: provider.materials
-                      .map((m) => FilterItem(m.id, m.name))
+                  provider.materials
+                      .map((e) => FilterItem(e.id, e.name))
                       .toList(),
-                  selectedItems: _tempSelectedMaterials,
+                  _tempSelectedMaterials,
                 ),
-                const SizedBox(height: 20),
               ],
             ),
           ),
-
-          // --- КНОПКИ ДЕЙСТВИЯ ---
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _resetFilters,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                    ),
-                    child: const Text('Сбросить'),
-                  ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _resetFilters,
+                  child: const Text('Сбросить'),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _applyFilters,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Применить'),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _applyFilters,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
                   ),
+                  child: const Text('Применить'),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // --- ВСПОМОГАТЕЛЬНЫЕ ВИДЖЕТЫ СЕКЦИЙ ---
-
-  Widget _sectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
+  Widget _sectionTitle(String t) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: Text(
+      t,
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    ),
+  );
 
   Widget _buildSortSection() {
     return Column(
@@ -216,103 +173,74 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     );
   }
 
-  Widget _sortRadio(String title, SortOption value) {
-    return RadioListTile<SortOption>(
-      title: Text(title),
-      value: value,
-      groupValue: _tempSortOption,
-      onChanged: (val) => setState(() => _tempSortOption = val!),
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-    );
-  }
+  Widget _sortRadio(String t, SortOption v) => RadioListTile<SortOption>(
+    title: Text(t),
+    value: v,
+    groupValue: _tempSortOption,
+    onChanged: (val) => setState(() => _tempSortOption = val!),
+    contentPadding: EdgeInsets.zero,
+    dense: true,
+  );
 
   Widget _buildGenderSection() {
-    final genders = {
-      'male': 'Мужской',
-      'female': 'Женский',
-      'unisex': 'Унисекс',
-    };
+    final gMap = {'male': 'Мужской', 'female': 'Женский', 'unisex': 'Унисекс'};
     return Wrap(
-      spacing: 8.0,
-      children: genders.entries.map((entry) {
-        return FilterChip(
-          label: Text(entry.value),
-          selected: _tempSelectedGenders.contains(entry.key),
-          onSelected: (selected) {
-            setState(() {
-              if (selected) {
-                _tempSelectedGenders.add(entry.key);
-              } else {
-                _tempSelectedGenders.remove(entry.key);
-              }
-            });
-          },
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildFilterSection({
-    required List<FilterItem> items,
-    required Set<String> selectedItems,
-  }) {
-    if (items.isEmpty) {
-      return const Text(
-        'Нет доступных вариантов',
-        style: TextStyle(color: Colors.grey),
-      );
-    }
-    return Wrap(
-      spacing: 8.0,
-      runSpacing: 0.0,
-      children: items.map((item) {
-        return FilterChip(
-          label: Text(item.name),
-          selected: selectedItems.contains(item.id),
-          onSelected: (selected) {
-            setState(() {
-              if (selected) {
-                selectedItems.add(item.id);
-              } else {
-                selectedItems.remove(item.id);
-              }
-            });
-          },
-        );
-      }).toList(),
+      spacing: 8,
+      children: gMap.entries
+          .map(
+            (e) => FilterChip(
+              label: Text(e.value),
+              selected: _tempSelectedGenders.contains(e.key),
+              onSelected: (s) => setState(
+                () => s
+                    ? _tempSelectedGenders.add(e.key)
+                    : _tempSelectedGenders.remove(e.key),
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 
   Widget _buildSizeSection() {
-    // Список стандартных размеров обуви
-    final List<int> allSizes = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46];
-
+    final allSizes = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46];
     return Wrap(
-      spacing: 8.0,
-      runSpacing: 4.0,
-      children: allSizes.map((size) {
-        final isSelected = _tempSelectedSizes.contains(size);
-        return FilterChip(
-          label: Text(size.toString()),
-          selected: isSelected,
-          onSelected: (selected) {
-            setState(() {
-              if (selected) {
-                _tempSelectedSizes.add(size);
-              } else {
-                _tempSelectedSizes.remove(size);
-              }
-            });
-          },
-        );
-      }).toList(),
+      spacing: 8,
+      children: allSizes
+          .map(
+            (sz) => FilterChip(
+              label: Text(sz.toString()),
+              selected: _tempSelectedSizes.contains(sz),
+              onSelected: (s) => setState(
+                () => s
+                    ? _tempSelectedSizes.add(sz)
+                    : _tempSelectedSizes.remove(sz),
+              ),
+            ),
+          )
+          .toList(),
     );
   }
-  // --- ЛОГИКА КНОПОК ---
+
+  Widget _buildFilterSection(List<FilterItem> items, Set<String> selected) {
+    return Wrap(
+      spacing: 8,
+      children: items
+          .map(
+            (i) => FilterChip(
+              label: Text(i.name),
+              selected: selected.contains(i.id),
+              onSelected: (s) => setState(
+                () => s ? selected.add(i.id) : selected.remove(i.id),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
 
   void _resetFilters() {
-    final provider = context.read<CatalogProvider>();
+    final p = context.read<CatalogProvider>();
     setState(() {
       _tempSelectedBrands.clear();
       _tempSelectedTypes.clear();
@@ -321,7 +249,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       _tempSelectedMaterials.clear();
       _tempSelectedSizes.clear();
       _tempSortOption = SortOption.none;
-      _tempPriceRange = RangeValues(0, provider.maxPriceLimit);
+      _tempPriceRange = RangeValues(0, p.maxPriceLimit);
     });
   }
 
@@ -332,11 +260,11 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       genders: _tempSelectedGenders,
       styles: _tempSelectedStyles,
       materials: _tempSelectedMaterials,
-      sort: _tempSortOption,
       sizes: _tempSelectedSizes,
+      sort: _tempSortOption,
       priceRange: _tempPriceRange,
     );
-    Navigator.of(context).pop();
+    Navigator.pop(context);
   }
 }
 

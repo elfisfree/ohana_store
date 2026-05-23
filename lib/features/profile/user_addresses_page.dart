@@ -2,6 +2,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:ohana_store/core/utils/app_notifications.dart';
 import 'package:ohana_store/main.dart';
 import 'package:ohana_store/models/user_address.dart';
 
@@ -36,7 +37,6 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
   }
 
   Future<void> _addAddress() async {
-    // Показываем диалог и ждем результат
     final result = await showDialog<Map<String, String>>(
       context: context,
       builder: (context) => const _AddAddressDialog(),
@@ -49,7 +49,6 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
           'name': result['name'],
           'address_line': result['address'],
         });
-        // Обновляем список после добавления
         setState(() {
           _addressesFuture = _fetchAddresses();
         });
@@ -76,7 +75,12 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
         });
       }
     } catch (e) {
-      /* ... */
+      if (mounted) {
+        AppNotifications.showError(context, 'Не удалось удалить адрес: $e');
+        setState(() {
+          _addressesFuture = _fetchAddresses();
+        });
+      }
     }
   }
 
@@ -124,7 +128,6 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
   }
 }
 
-// Приватный виджет для диалогового окна
 class _AddAddressDialog extends StatefulWidget {
   const _AddAddressDialog();
 

@@ -21,7 +21,6 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
   }
 
   Future<List<Order>> _fetchDeliveryOrders() async {
-    // Курьер видит только заказы в пути
     final response = await supabase
         .from('orders')
         .select()

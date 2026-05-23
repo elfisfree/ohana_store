@@ -23,7 +23,6 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
   }
 
   Future<List<Order>> _fetchWarehouseOrders() async {
-    // Сборщик видит только новые и собираемые заказы
     final response = await supabase
         .from('orders')
         .select()

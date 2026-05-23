@@ -177,8 +177,6 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 30),
-
-                    // --- ДОБАВЛЯЕМ НОВУЮ КНОПКУ ---
                     _menuButton(
                       context,
                       title: 'МОИ АДРЕСА',

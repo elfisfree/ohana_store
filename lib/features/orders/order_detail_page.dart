@@ -11,6 +11,27 @@ import 'package:ohana_store/features/checkout/mock_payment_page.dart';
 import 'package:ohana_store/main.dart';
 import 'package:ohana_store/models/order.dart';
 
+class ReviewDisplay {
+  final double rating;
+  final String? text;
+  final DateTime createdAt;
+  final String? userName;
+  ReviewDisplay({
+    required this.rating,
+    this.text,
+    required this.createdAt,
+    this.userName,
+  });
+  factory ReviewDisplay.fromJson(Map<String, dynamic> json) {
+    return ReviewDisplay(
+      rating: (json['rating'] as num).toDouble(),
+      text: json['review_text'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      userName: json['user_full_name'] as String? ?? 'Аноним',
+    );
+  }
+}
+
 class OrderDetailPage extends StatefulWidget {
   final String orderId;
   final bool isAdmin;
@@ -30,9 +51,7 @@ class OrderDetailPage extends StatefulWidget {
 }
 
 class _OrderDetailPageState extends State<OrderDetailPage> {
-  // Future возвращает кортеж: (Объект Заказа, Сет ID позиций с отзывами, Список истории статусов)
   late Future<(Order, Set<String>, List<dynamic>)> _orderDataFuture;
-
   Timer? _countdownTimer;
   Duration _timeLeft = Duration.zero;
 
@@ -48,10 +67,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     super.dispose();
   }
 
-  // --- ЗАГРУЗКА ВСЕХ ДАННЫХ ---
   Future<(Order, Set<String>, List<dynamic>)> _fetchAllOrderData() async {
     try {
-      // 1. Сначала узнаем ID элементов в заказе
       final orderItemsResponse = await supabase
           .from('order_items')
           .select('id')
@@ -60,22 +77,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           .map((e) => e['id'] as String)
           .toList();
 
-      // 2. Параллельно загружаем все данные
       final results = await Future.wait<dynamic>([
-        // Детали заказа
         supabase
             .from('orders')
-            .select('*, order_items(*, products(*, brands(*)))')
+            .select(
+              '*, order_items(*, product_variants(*), products(*, brands(*)))',
+            )
             .eq('id', widget.orderId)
             .single(),
-        // Отзывы
+
         orderItemIds.isEmpty
             ? Future.value([])
             : supabase
                   .from('product_reviews')
                   .select('order_item_id')
                   .inFilter('order_item_id', orderItemIds),
-        // История статусов
+
         supabase
             .from('order_status_history')
             .select()
@@ -83,39 +100,26 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             .order('changed_at', ascending: false),
       ]);
 
-      final order = Order.fromJson(results[0] as Map<String, dynamic>);
-      final reviewedItemIds = (results[1] as List)
-          .map<String>((item) => item['order_item_id'] as String)
-          .toSet();
-      final history = results[2] as List<dynamic>;
-
-      return (order, reviewedItemIds, history);
+      return (
+        Order.fromJson(results[0]),
+        (results[1] as List)
+            .map<String>((e) => e['order_item_id'] as String)
+            .toSet(),
+        results[2] as List<dynamic>,
+      );
     } catch (e) {
-      print('!!! ОШИБКА ЗАГРУЗКИ: $e');
-      throw Exception('Не удалось загрузить данные заказа');
+      print("Error fetching order details: $e");
+      throw Exception('Ошибка загрузки данных');
     }
   }
 
-  // --- ЛОГИКА ТАЙМЕРА ОПЛАТЫ ---
-  void _startTimer(DateTime expiry) {
-    _countdownTimer?.cancel();
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      final diff = expiry.difference(DateTime.now());
-      setState(() {
-        _timeLeft = diff.isNegative ? Duration.zero : diff;
-      });
-      if (_timeLeft == Duration.zero) timer.cancel();
-    });
-  }
-
-  // --- ОБНОВЛЕНИЕ СТАТУСА ---
   Future<void> _updateOrderStatus(String newStatus) async {
     try {
       await supabase
           .from('orders')
           .update({'status': newStatus})
           .eq('id', widget.orderId);
+
       if (mounted) {
         AppNotifications.showSuccess(context, 'Статус обновлен');
         setState(() {
@@ -127,48 +131,30 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
   }
 
-  // --- ДИАЛОГ ОТМЕНЫ ЗАКАЗА ---
   Future<void> _confirmCancellation() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor:
-            (widget.isAdmin || widget.isCollector || widget.isCourier)
-            ? AdminColors.card
-            : Colors.white,
+        backgroundColor: widget.isAdmin ? AdminColors.card : Colors.white,
         title: const Text(
           'ОТМЕНА ЗАКАЗА',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: const Text('Вы уверены? Это действие нельзя будет отменить.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('НАЗАД'),
+            child: const Text('НЕТ'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ПОДТВЕРДИТЬ'),
+            child: const Text('ДА'),
           ),
         ],
       ),
     );
-    if (confirm == true) _updateOrderStatus('cancelled');
-  }
-
-  // --- ЛОГИКА ВОЗВРАТА ---
-  Future<void> _requestReturn(String reason) async {
-    try {
-      await supabase.from('return_requests').insert({
-        'order_id': widget.orderId,
-        'user_id': supabase.auth.currentUser!.id,
-        'reason': reason,
-      });
-      await _updateOrderStatus('return_requested');
-      AppNotifications.showSuccess(context, 'Заявка на возврат отправлена');
-    } catch (e) {
-      AppNotifications.showError(context, 'Ошибка: $e');
+    if (confirm == true) {
+      _updateOrderStatus('cancelled');
     }
   }
 
@@ -181,9 +167,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         content: TextField(
           controller: controller,
           maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Опишите причину (брак, не подошел размер...)',
-          ),
+          decoration: const InputDecoration(hintText: 'Опишите причину...'),
         ),
         actions: [
           TextButton(
@@ -201,6 +185,20 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _requestReturn(String reason) async {
+    try {
+      await supabase.from('return_requests').insert({
+        'order_id': widget.orderId,
+        'user_id': supabase.auth.currentUser!.id,
+        'reason': reason,
+      });
+      await _updateOrderStatus('return_requested');
+      AppNotifications.showSuccess(context, 'Заявка на возврат отправлена');
+    } catch (e) {
+      AppNotifications.showError(context, 'Ошибка: $e');
+    }
   }
 
   String _translateStatus(String status) {
@@ -224,6 +222,18 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
   }
 
+  void _startTimer(DateTime expiry) {
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      final diff = expiry.difference(DateTime.now());
+      setState(() {
+        _timeLeft = diff.isNegative ? Duration.zero : diff;
+      });
+      if (_timeLeft == Duration.zero) timer.cancel();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isStaff =
@@ -244,16 +254,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       body: FutureBuilder<(Order, Set<String>, List<dynamic>)>(
         future: _orderDataFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Ошибка: ${snapshot.error}',
-                style: TextStyle(color: textColor),
-              ),
-            );
           }
 
           final order = snapshot.data!.$1;
@@ -282,13 +284,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   _buildOrderCard(order, isStaff),
-
-                  // КНОПКИ УПРАВЛЕНИЯ
                   if (widget.isAdmin) _buildAdminControls(order.status),
                   if (widget.isCollector) _buildCollectorButtons(order.status),
                   if (widget.isCourier) _buildCourierButtons(order.status),
-
-                  // КНОПКИ ДЛЯ ПОКУПАТЕЛЯ
                   if (!isStaff) _buildBuyerActions(order, isReturnPeriodActive),
 
                   const SizedBox(height: 30),
@@ -332,7 +330,106 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  // --- СЕКЦИИ UI ---
+  Widget _buildProductTile(
+    OrderItem item,
+    Set<String> reviewedIds,
+    String orderStatus,
+    bool isStaff,
+    NumberFormat f,
+  ) {
+    String imageUrl = "";
+    if (item.variant != null && item.variant!.imageUrls.isNotEmpty) {
+      imageUrl = item.variant!.imageUrls.first;
+    } else if (item.product.variants.isNotEmpty &&
+        item.product.variants.first.imageUrls.isNotEmpty) {
+      imageUrl = item.product.variants.first.imageUrls.first;
+    }
+
+    final bool canReview =
+        !widget.isAdmin &&
+        !widget.isCollector &&
+        !widget.isCourier &&
+        orderStatus == 'delivered' &&
+        !reviewedIds.contains(item.id);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: isStaff ? AdminColors.card : Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: isStaff ? null : Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
+                  )
+                : Container(
+                    width: 60,
+                    height: 60,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.image_not_supported),
+                  ),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.product.name,
+                  style: TextStyle(
+                    color: isStaff ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Размер: ${item.size.toInt()}, Цвет: ${item.variant?.colorName ?? 'Базовый'}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                if (canReview)
+                  TextButton(
+                    onPressed: () async {
+                      final res = await context.push(
+                        '/add-review',
+                        extra: {
+                          'order_item_id': item.id,
+                          'product_id': item.product.id,
+                        },
+                      );
+                      if (res == true) {
+                        setState(() => _orderDataFuture = _fetchAllOrderData());
+                      }
+                    },
+                    child: const Text(
+                      'ОСТАВИТЬ ОТЗЫВ',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Text(
+            f.format(item.priceAtPurchase),
+            style: TextStyle(
+              color: isStaff ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildBuyerActions(Order order, bool isReturnActive) {
     return Column(
@@ -355,7 +452,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('ВЕРНУТЬ ТОВАР (14 ДНЕЙ)'),
+              child: const Text('ОФОРМИТЬ ВОЗВРАТ (14 ДНЕЙ)'),
             ),
           ),
       ],
@@ -370,7 +467,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         status != 'returned' &&
         status != 'return_requested';
     if (!canSend && !canCancel) return const SizedBox.shrink();
-
     return Container(
       margin: const EdgeInsets.only(top: 20),
       padding: const EdgeInsets.all(20),
@@ -542,84 +638,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
           if (order.shippingAddress != null)
             _infoLine('АДРЕС', order.shippingAddress!, text, Colors.grey),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductTile(
-    dynamic item,
-    Set<String> reviewedIds,
-    String status,
-    bool isStaff,
-    NumberFormat f,
-  ) {
-    final bool canReview =
-        !isStaff && status == 'delivered' && !reviewedIds.contains(item.id);
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: isStaff ? AdminColors.card : Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: isStaff ? null : Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Image.network(
-            item.product.imageUrls.first,
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.product.name,
-                  style: TextStyle(
-                    color: isStaff ? Colors.white : Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'Размер: ${item.size}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-                if (canReview)
-                  TextButton(
-                    onPressed: () async {
-                      final res = await context.push(
-                        '/add-review',
-                        extra: {
-                          'order_item_id': item.id,
-                          'product_id': item.product.id,
-                        },
-                      );
-                      if (res == true) {
-                        setState(() => _orderDataFuture = _fetchAllOrderData());
-                      }
-                    },
-                    child: const Text(
-                      'ОСТАВИТЬ ОТЗЫВ',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Text(
-            f.format(item.priceAtPurchase),
-            style: TextStyle(
-              color: isStaff ? Colors.white : Colors.black,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
         ],
       ),
     );

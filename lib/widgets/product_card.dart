@@ -11,10 +11,23 @@ class ProductCard extends StatelessWidget {
   final Product product;
   const ProductCard({super.key, required this.product});
 
-  // Вспомогательный виджет для очень компактного отображения размеров
   Widget _buildSizes() {
-    final sortedSizes = List<int>.from(product.availableSizes)..sort();
-    // Показываем только первые 4 размера, чтобы не раздувать карточку
+    if (product.variants.isEmpty) return const SizedBox.shrink();
+    final firstVariantStock = product.variants.first.stock;
+    final availableStock = firstVariantStock
+        .where((s) => s.quantity > 0)
+        .toList();
+    if (availableStock.isEmpty) {
+      return const Text(
+        'НЕТ В НАЛИЧИИ',
+        style: TextStyle(
+          color: Colors.red,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
+    final sortedSizes = availableStock.map((s) => s.size).toList()..sort();
     final displaySizes = sortedSizes.take(4).toList();
 
     return Wrap(
@@ -28,7 +41,7 @@ class ProductCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                size.toString(),
+                size.toString().replaceAll('.0', ''),
                 style: TextStyle(
                   fontSize: 10,
                   color: Colors.grey.shade600,
@@ -49,6 +62,12 @@ class ProductCard extends StatelessWidget {
       decimalDigits: 0,
     );
 
+    String? previewUrl;
+    if (product.variants.isNotEmpty &&
+        product.variants.first.imageUrls.isNotEmpty) {
+      previewUrl = product.variants.first.imageUrls.first;
+    }
+
     return GestureDetector(
       onTap: () => context.push('/product/${product.id}'),
       child: Container(
@@ -66,7 +85,6 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- БЛОК С ИЗОБРАЖЕНИЕМ ---
             Stack(
               children: [
                 ClipRRect(
@@ -74,10 +92,10 @@ class ProductCard extends StatelessWidget {
                     top: Radius.circular(20),
                   ),
                   child: AspectRatio(
-                    aspectRatio: 1, // Квадратное фото
-                    child: product.imageUrls.isNotEmpty
+                    aspectRatio: 1,
+                    child: previewUrl != null
                         ? Image.network(
-                            product.imageUrls.first,
+                            previewUrl,
                             fit: BoxFit.cover,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
@@ -96,7 +114,6 @@ class ProductCard extends StatelessWidget {
                           ),
                   ),
                 ),
-                // Кнопка избранного
                 Positioned(
                   top: 8,
                   right: 8,
@@ -129,7 +146,6 @@ class ProductCard extends StatelessWidget {
               ],
             ),
 
-            // --- ИНФОРМАЦИОННЫЙ БЛОК ---
             Padding(
               padding: const EdgeInsets.all(10),
               child: Column(
@@ -156,8 +172,6 @@ class ProductCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-
-                  // Рейтинг
                   if (product.reviewsCount > 0) ...[
                     const SizedBox(height: 4),
                     Row(
@@ -182,8 +196,6 @@ class ProductCard extends StatelessWidget {
                       ],
                     ),
                   ],
-
-                  // ТЕГИ (Максимум 3)
                   if (product.tags.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
@@ -206,13 +218,9 @@ class ProductCard extends StatelessWidget {
                     ),
 
                   const SizedBox(height: 8),
-
-                  // РАЗМЕРЫ (Компактные)
-                  if (product.availableSizes.isNotEmpty) _buildSizes(),
+                  _buildSizes(),
 
                   const SizedBox(height: 10),
-
-                  // ЦЕНА
                   Text(
                     currencyFormatter.format(product.price),
                     style: TextStyle(

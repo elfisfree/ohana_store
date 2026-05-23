@@ -4,9 +4,10 @@ import 'package:ohana_store/models/product.dart';
 class OrderItem {
   final String id;
   final int quantity;
-  final int size;
+  final double size;
   final double priceAtPurchase;
   final Product product;
+  final ProductVariant? variant;
 
   OrderItem({
     required this.id,
@@ -14,15 +15,21 @@ class OrderItem {
     required this.size,
     required this.priceAtPurchase,
     required this.product,
+    this.variant,
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
       id: json['id'] as String,
       quantity: json['quantity'] as int,
-      size: (json['size'] as num).toInt(),
+      size: (json['size'] as num).toDouble(),
       priceAtPurchase: (json['price_at_purchase'] as num).toDouble(),
-      product: Product.fromJson(json['products']),
+      product: Product.fromJson(json['products'] as Map<String, dynamic>),
+      variant: json['product_variants'] != null
+          ? ProductVariant.fromJson(
+              json['product_variants'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 }
@@ -38,10 +45,8 @@ class Order {
   final List<OrderItem> items;
   final double discountAmount;
   final double finalPrice;
-
-  final String paymentStatus; // 'pending', 'succeeded'
+  final String paymentStatus;
   final DateTime? expiresAt;
-
   final DateTime? deliveredAt;
 
   Order({
@@ -55,7 +60,6 @@ class Order {
     this.items = const [],
     required this.discountAmount,
     required this.finalPrice,
-
     required this.paymentStatus,
     this.expiresAt,
     this.deliveredAt,
@@ -77,7 +81,6 @@ class Order {
           [],
       discountAmount: (json['discount_amount'] as num).toDouble(),
       finalPrice: (json['final_price'] as num).toDouble(),
-
       paymentStatus: json['payment_status'] ?? 'pending',
       expiresAt: json['expires_at'] != null
           ? DateTime.parse(json['expires_at'])

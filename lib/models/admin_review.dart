@@ -6,12 +6,11 @@ class AdminReview {
   final String productId;
   final DateTime createdAt;
 
-  // Информация о заказе и товаре
   final String orderId;
   final double orderTotal;
   final String orderStatus;
-  final int orderedSize; // <-- Новое: купленный размер
-  final String materialName; // <-- Новое: материал товара
+  final int orderedSize;
+  final String materialName;
 
   AdminReview({
     required this.id,
@@ -40,7 +39,6 @@ class AdminReview {
       orderId: order['id'],
       orderTotal: (order['final_price'] as num).toDouble(),
       orderStatus: order['status'],
-      // Достаем новые поля
       orderedSize: (orderItem['size'] as num).toInt(),
       materialName: product['materials']?['name'] ?? 'Не указан',
     );

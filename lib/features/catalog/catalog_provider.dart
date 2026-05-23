@@ -14,26 +14,19 @@ class CatalogProvider extends ChangeNotifier {
 
   double _maxPriceLimit = 100000.0;
   RangeValues _selectedPriceRange = const RangeValues(0, 100000);
-
-  // Списки для справочников фильтров
   List<Brand> _brands = [];
   List<ProductType> _productTypes = [];
-  List<Style> _styles = []; // <-- Новое
-  List<MaterialModel> _materials = []; // <-- Новое
-
-  // Параметры текущей фильтрации
+  List<Style> _styles = [];
+  List<MaterialModel> _materials = [];
   String _searchQuery = '';
   Set<String> _selectedBrandIds = {};
   Set<String> _selectedTypeIds = {};
   Set<String> _selectedGenders = {};
-  Set<String> _selectedStyleIds = {}; // <-- Новое
-  Set<String> _selectedMaterialIds = {}; // <-- Новое
+  Set<String> _selectedStyleIds = {};
+  Set<String> _selectedMaterialIds = {};
+  Set<int> _selectedSizes = {};
   SortOption _sortOption = SortOption.none;
 
-  Set<int> _selectedSizes = {}; // Храним выбранные размеры (целые числа)
-  Set<int> get selectedSizes => _selectedSizes;
-
-  // Геттеры
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<Product> get products => _products;
@@ -47,6 +40,7 @@ class CatalogProvider extends ChangeNotifier {
   Set<String> get selectedGenders => _selectedGenders;
   Set<String> get selectedStyleIds => _selectedStyleIds;
   Set<String> get selectedMaterialIds => _selectedMaterialIds;
+  Set<int> get selectedSizes => _selectedSizes;
 
   SortOption get sortOption => _sortOption;
   double get maxPriceLimit => _maxPriceLimit;
@@ -57,19 +51,17 @@ class CatalogProvider extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    // Сначала загружаем справочники, потом товары
     await _fetchFilterOptions();
     await fetchProducts();
   }
 
   Future<void> _fetchFilterOptions() async {
     try {
-      // Загружаем все данные для фильтров параллельно
       final results = await Future.wait<dynamic>([
         supabase.from('brands').select(),
         supabase.from('product_types').select(),
-        supabase.from('styles').select(), // <-- Новое
-        supabase.from('materials').select(), // <-- Новое
+        supabase.from('styles').select(),
+        supabase.from('materials').select(),
         supabase
             .from('products')
             .select('price')
@@ -88,9 +80,8 @@ class CatalogProvider extends ChangeNotifier {
           .toList();
 
       if (results[4] != null) {
-        // ignore: unused_local_variable
         final maxPriceData = results[4] as Map<String, dynamic>;
-        _maxPriceLimit = (results[4]['price'] as num).toDouble();
+        _maxPriceLimit = (maxPriceData['price'] as num).toDouble();
         _selectedPriceRange = RangeValues(0, _maxPriceLimit);
       }
     } catch (e) {
@@ -103,22 +94,21 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Ключевое изменение: запрашиваем вложенные теги product_tags(tags(*))
       dynamic query = supabase.from('products').select('''
         *,
         brands(*),
         product_types(*),
         styles(*),
         materials(*),
-        product_tags(tags(*))
+        product_tags(tags(*)),
+        product_variants(*, product_stock(*))
       ''');
 
-      // 1. Поиск (fts настроен в БД на Шаге 1)
       if (_searchQuery.isNotEmpty) {
         final searchTerms = _searchQuery
             .trim()
             .split(' ')
-            .where((term) => term.isNotEmpty)
+            .where((t) => t.isNotEmpty)
             .toList();
         if (searchTerms.isNotEmpty) {
           final parsedQuery = searchTerms.map((term) => '$term:*').join(' | ');
@@ -126,7 +116,6 @@ class CatalogProvider extends ChangeNotifier {
         }
       }
 
-      // 2. Фильтры
       if (_selectedBrandIds.isNotEmpty) {
         query = query.inFilter('brand_id', _selectedBrandIds.toList());
       }
@@ -136,8 +125,6 @@ class CatalogProvider extends ChangeNotifier {
       if (_selectedGenders.isNotEmpty) {
         query = query.inFilter('gender', _selectedGenders.toList());
       }
-
-      // Новые фильтры СТИЛЬ и МАТЕРИАЛ
       if (_selectedStyleIds.isNotEmpty) {
         query = query.inFilter('style_id', _selectedStyleIds.toList());
       }
@@ -149,12 +136,10 @@ class CatalogProvider extends ChangeNotifier {
         query = query.overlaps('available_sizes', _selectedSizes.toList());
       }
 
-      // Цена
       query = query
           .gte('price', _selectedPriceRange.start)
           .lte('price', _selectedPriceRange.end);
 
-      // 3. Сортировка (Всегда последняя)
       if (_sortOption == SortOption.priceAsc) {
         query = query.order('price', ascending: true);
       } else if (_sortOption == SortOption.priceDesc) {
@@ -168,27 +153,21 @@ class CatalogProvider extends ChangeNotifier {
         response,
       );
       _products = data.map((p) => Product.fromJson(p)).toList();
-
       _error = null;
     } catch (e) {
       _error = "Не удалось загрузить товары";
-      print('!!! КРИТИЧЕСКАЯ ОШИБКА КАТАЛОГА: $e');
+      print('!!! ОШИБКА КАТАЛОГА: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  void _performSearch(String query) {
-    if (query == _searchQuery) return;
-    _searchQuery = query;
-    fetchProducts();
-  }
-
   void onSearchQueryChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      _performSearch(query);
+      _searchQuery = query;
+      fetchProducts();
     });
   }
 
@@ -196,8 +175,8 @@ class CatalogProvider extends ChangeNotifier {
     required Set<String> brands,
     required Set<String> types,
     required Set<String> genders,
-    required Set<String> styles, // <-- Новое
-    required Set<String> materials, // <-- Новое
+    required Set<String> styles,
+    required Set<String> materials,
     required Set<int> sizes,
     required SortOption sort,
     required RangeValues priceRange,
