@@ -12,11 +12,23 @@ class FavoritesPage extends StatelessWidget {
     return Consumer<FavoritesProvider>(
       builder: (context, favoritesProvider, child) {
         return Scaffold(
+          backgroundColor: Colors.grey[50],
           appBar: AppBar(
-            title: const Text('Избранное'),
+            backgroundColor: Colors.white,
+            elevation: 0,
+            foregroundColor: Colors.black,
+            centerTitle: true,
+            title: const Text(
+              'ИЗБРАННОЕ',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.1,
+                fontSize: 18,
+              ),
+            ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.refresh),
+                icon: const Icon(Icons.refresh_rounded),
                 onPressed: () => favoritesProvider.fetchFavorites(),
               ),
             ],
@@ -29,39 +41,73 @@ class FavoritesPage extends StatelessWidget {
 
   Widget _buildContent(BuildContext context, FavoritesProvider provider) {
     if (provider.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final favoriteProducts = provider.favoriteProducts;
-
-    if (favoriteProducts.isEmpty) {
       return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.favorite_border, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'У вас пока нет избранных товаров',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
-        ),
+        child: CircularProgressIndicator(color: Colors.black),
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(8.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 0.6,
+    final favoriteProducts = provider.favoriteProducts;
+    if (favoriteProducts.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.favorite_border_rounded,
+                  size: 60,
+                  color: Colors.black12,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'ПУСТО',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Сохраняйте товары, которые вам понравились, чтобы вернуться к ним позже.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: provider.fetchFavorites,
+      color: Colors.black,
+      child: GridView.builder(
+        padding: const EdgeInsets.all(16.0),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.65,
+        ),
+        itemCount: favoriteProducts.length,
+        itemBuilder: (context, index) {
+          return ProductCard(product: favoriteProducts[index]);
+        },
       ),
-      itemCount: favoriteProducts.length,
-      itemBuilder: (context, index) {
-        return ProductCard(product: favoriteProducts[index]);
-      },
     );
   }
 }
