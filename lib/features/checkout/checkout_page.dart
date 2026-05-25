@@ -9,6 +9,7 @@ import 'package:ohana_store/main.dart';
 import 'package:ohana_store/models/cart_item.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ohana_store/features/cart/cart_provider.dart';
+import 'package:ohana_store/models/product.dart';
 import 'package:provider/provider.dart';
 import 'package:ohana_store/models/user_address.dart';
 
@@ -132,8 +133,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final results = await Future.wait([
         supabase
             .from('cart_items')
-            .select('*, products(*, brands(*))')
+            .select(
+              '*, products(*, brands(*)), product_variants(*, product_stock(*))',
+            ) // Добавили product_stock(*)
             .inFilter('id', widget.selectedCartItemIds.toList()),
+
         supabase
             .from('user_addresses')
             .select()
@@ -162,13 +166,43 @@ class _CheckoutPageState extends State<CheckoutPage> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'Не удалось загрузить данные';
-          _isLoading = false;
-        });
+      print("Ошибка в полуении информации о продукте: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateItemQuantity(CartItem item, int newQuantity) async {
+    if (newQuantity < 1) return;
+
+    // 1. Проверяем наличие на складе (если увеличиваем)
+    if (newQuantity > item.quantity) {
+      final stock = item.variant?.stock.firstWhere(
+        (s) => s.size == item.size,
+        orElse: () => StockItem(id: '', size: 0, quantity: 0),
+      );
+      if (stock != null && newQuantity > stock.quantity) {
+        AppNotifications.showError(context, 'Больше нет в наличии');
+        return;
       }
     }
+
+    // 2. Обновляем в базе через провайдер (чтобы корзина тоже знала об изменениях)
+    await context.read<CartProvider>().updateQuantity(item.id, newQuantity);
+
+    // 3. Обновляем локальное состояние страницы оформления
+    setState(() {
+      final index = _selectedItems.indexWhere((i) => i.id == item.id);
+      if (index != -1) {
+        _selectedItems[index] = CartItem(
+          id: item.id,
+          quantity: newQuantity,
+          size: item.size,
+          product: item.product,
+          variant: item.variant,
+        );
+        _calculateTotals(); // Пересчитываем итоговую сумму заказа
+      }
+    });
   }
 
   Future<void> _showAddAddressDialog() async {
@@ -438,63 +472,108 @@ class _CheckoutPageState extends State<CheckoutPage> {
     String imageUrl = "";
     if (item.variant != null && item.variant!.imageUrls.isNotEmpty) {
       imageUrl = item.variant!.imageUrls.first;
-    } else if (item.product.variants.isNotEmpty &&
-        item.product.variants.first.imageUrls.isNotEmpty) {
-      imageUrl = item.product.variants.first.imageUrls.first;
     }
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Column(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
-                    width: 70,
-                    height: 70,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.image_not_supported),
-                  )
-                : Container(
-                    width: 70,
-                    height: 70,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.image),
-                  ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.product.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(width: 60, height: 60, color: Colors.grey[200]),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.product.name.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Размер: ${item.size.toInt()} | ${item.variant?.colorName ?? "Стандарт"}',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Цвет: ${item.variant?.colorName ?? "Стандарт"}, Размер: ${item.size.toInt()}',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+              Text(
+                f.format(item.product.price * item.quantity),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 15,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Text(
-            f.format(item.product.price),
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'КОЛИЧЕСТВО',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black38,
+                ),
+              ),
+              Container(
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove, size: 16),
+                      onPressed: item.quantity > 1
+                          ? () => _updateItemQuantity(item, item.quantity - 1)
+                          : null,
+                    ),
+                    Text(
+                      '${item.quantity}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add, size: 16),
+                      onPressed: () =>
+                          _updateItemQuantity(item, item.quantity + 1),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

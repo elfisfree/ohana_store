@@ -110,6 +110,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     setState(() => _isAddingToCart = true);
     try {
+      // --- ПРОВЕРКА НАЛИЧИЯ ПЕРЕД ДОБАВЛЕНИЕМ ---
+      final stockCheck = await supabase
+          .from('product_stock')
+          .select('quantity')
+          .eq('variant_id', currentVariant.id)
+          .eq('size', _selectedSize!)
+          .single();
+
+      if ((stockCheck['quantity'] as int) <= 0) {
+        AppNotifications.showError(
+          context,
+          'Извините, этот размер только что закончился',
+        );
+        setState(() {
+          _isAddingToCart = false;
+          _dataFuture = _fetchProductData(); // Обновляем данные на странице
+        });
+        return;
+      }
+      // ------------------------------------------
+
       final userId = supabase.auth.currentUser!.id;
 
       await supabase.from('cart_items').insert({
@@ -125,7 +146,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       }
     } catch (e) {
       if (mounted) {
-        AppNotifications.showError(context, 'Этот товар уже в вашей корзине');
+        AppNotifications.showError(context, 'Этот товар уже в корзине');
       }
     } finally {
       if (mounted) setState(() => _isAddingToCart = false);
@@ -353,25 +374,55 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                       const SizedBox(height: 12),
                       Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
+                        spacing: 12,
+                        runSpacing: 12,
                         children: currentVariant.stock.map((stockItem) {
                           final bool isSelected =
                               _selectedSize == stockItem.size;
                           final bool isOutOfStock = stockItem.quantity <= 0;
 
                           return ChoiceChip(
-                            label: Text(
-                              stockItem.size.toString().replaceAll('.0', ''),
-                              style: TextStyle(
-                                color: isOutOfStock
-                                    ? Colors.grey
-                                    : (isSelected
-                                          ? Colors.white
-                                          : Colors.black),
-                                fontWeight: FontWeight.bold,
+                            // --- ГЛАВНОЕ ИЗМЕНЕНИЕ: Кастомный Label ---
+                            label: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Верхняя строка: Номер размера
+                                  Text(
+                                    stockItem.size.toString().replaceAll(
+                                      '.0',
+                                      '',
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: isOutOfStock
+                                          ? Colors.grey
+                                          : (isSelected
+                                                ? Colors.white
+                                                : Colors.black),
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  // Нижняя строка: Количество
+                                  Text(
+                                    isOutOfStock
+                                        ? 'НЕТ'
+                                        : '${stockItem.quantity} шт',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      color: isOutOfStock
+                                          ? Colors.red.withValues(alpha: 0.5)
+                                          : (isSelected
+                                                ? Colors.white70
+                                                : Colors.grey.shade500),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
+                            // ------------------------------------------
                             selected: isSelected,
                             onSelected: isOutOfStock
                                 ? null
@@ -386,8 +437,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             selectedColor: Colors.black,
                             backgroundColor: Colors.white,
                             disabledColor: Colors.grey.shade100,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                            ), // Увеличим отступы внутри чипа
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                               side: BorderSide(
                                 color: isSelected
                                     ? Colors.black
