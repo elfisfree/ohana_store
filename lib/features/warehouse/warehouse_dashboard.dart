@@ -1,7 +1,6 @@
 // lib/features/warehouse/warehouse_dashboard.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-// ignore: unused_import
 import 'package:intl/intl.dart';
 import 'package:ohana_store/main.dart';
 import 'package:ohana_store/models/order.dart';
@@ -23,11 +22,13 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
   }
 
   Future<List<Order>> _fetchWarehouseOrders() async {
+    // Сборщик видит заказы, которые нужно начать собирать (pending)
+    // или которые уже собираются (processing)
     final response = await supabase
         .from('orders')
         .select()
         .inFilter('status', ['pending', 'processing'])
-        .order('created_at', ascending: true);
+        .order('created_at', ascending: true); // Самые старые — вверху
 
     return (response as List).map((o) => Order.fromJson(o)).toList();
   }
@@ -35,14 +36,19 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text(
-          'СКЛАД: СБОРКА',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          'ТЕРМИНАЛ СБОРОК',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2),
         ),
+        centerTitle: true,
+        backgroundColor: Colors.blue.shade900,
+        foregroundColor: Colors.white,
+        elevation: 5,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded),
             onPressed: () => supabase.auth.signOut(),
           ),
         ],
@@ -50,43 +56,165 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
       body: FutureBuilder<List<Order>>(
         future: _warehouseOrders,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          final orders = snapshot.data!;
+          if (snapshot.hasError) {
+            return Center(child: Text('Ошибка сети: ${snapshot.error}'));
+          }
 
+          final orders = snapshot.data!;
           if (orders.isEmpty) {
-            return const Center(child: Text('Нет активных заказов для сборки'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 80,
+                    color: Colors.grey[300],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Все заказы собраны!',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
 
           return RefreshIndicator(
             onRefresh: () async =>
                 setState(() => _warehouseOrders = _fetchWarehouseOrders()),
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               itemCount: orders.length,
               itemBuilder: (context, index) {
                 final order = orders[index];
-                return Card(
-                  color: order.status == 'processing'
-                      ? Colors.blue.shade50
-                      : Colors.white,
-                  child: ListTile(
-                    title: Text(
-                      'Заказ #${order.id.substring(0, 8)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                final bool isProcessing = order.status == 'processing';
+
+                // Форматирование даты
+                final String formattedDate = DateFormat(
+                  'dd.MM.yyyy, HH:mm',
+                ).format(order.createdAt.toLocal());
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: isProcessing ? Colors.blue.shade50 : Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: isProcessing
+                          ? Colors.blue.shade300
+                          : Colors.transparent,
+                      width: 2,
                     ),
-                    subtitle: Text(
-                      'Статус: ${order.status == 'pending' ? 'НОВЫЙ' : 'В СБОРКЕ'}',
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(15),
+                    onTap: () async {
+                      // Ждем возврата со страницы деталей
+                      final bool? result = await context.push<bool>(
+                        '/warehouse/order/${order.id}',
+                      );
+                      // Если статус изменился — обновляем список
+                      if (result == true && mounted) {
+                        setState(() {
+                          _warehouseOrders = _fetchWarehouseOrders();
+                        });
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          // Иконка состояния
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isProcessing
+                                  ? Colors.blue
+                                  : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              isProcessing
+                                  ? Icons.pending_actions
+                                  : Icons.new_releases_outlined,
+                              color: isProcessing
+                                  ? Colors.white
+                                  : Colors.blue.shade900,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Инфо заказа
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'ЗАКАЗ #${order.id.substring(0, 8).toUpperCase()}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Создан: $formattedDate',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Бейдж статуса
+                          _buildStatusBadge(order.status),
+                        ],
+                      ),
                     ),
-                    trailing: const Icon(Icons.arrow_forward_ios),
-                    onTap: () => context.push('/warehouse/order/${order.id}'),
                   ),
                 );
               },
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    final bool isNew = status == 'pending';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isNew
+            ? Colors.orange.withValues(alpha: 0.1)
+            : Colors.blue.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        isNew ? 'НОВЫЙ' : 'В СБОРКЕ',
+        style: TextStyle(
+          color: isNew ? Colors.orange.shade900 : Colors.blue.shade900,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

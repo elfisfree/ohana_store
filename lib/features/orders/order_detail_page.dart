@@ -311,12 +311,23 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isStaff =
+    final bool isAnyStaff =
         widget.isAdmin || widget.isCollector || widget.isCourier;
-    final Color textColor = isStaff ? Colors.white : Colors.black;
+
+    final bool useDark = widget.isAdmin;
+
+    final Color bgColor = useDark ? AdminColors.background : Colors.grey[50]!;
+    final Color cardColor = widget.isAdmin ? AdminColors.card : Colors.white;
+    final Color textColor = widget.isAdmin ? Colors.white : Colors.black;
+    final Color subTextColor = widget.isAdmin
+        ? Colors.white38
+        : Colors.grey[600]!;
+    final Color dividerColor = widget.isAdmin
+        ? Colors.white10
+        : Colors.grey[200]!;
 
     return Scaffold(
-      backgroundColor: isStaff ? AdminColors.background : Colors.grey[50],
+      backgroundColor: bgColor,
       appBar: AppBar(
         title: Text(
           'ДЕТАЛИ ЗАКАЗА',
@@ -366,16 +377,28 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _buildOrderCard(order, isStaff),
+                  _buildOrderCard(
+                    order,
+                    useDark,
+                    textColor,
+                    subTextColor,
+                    dividerColor,
+                  ),
 
                   // Кнопки управления (Роли)
                   if (widget.isAdmin) _buildAdminControls(order.status),
                   if (widget.isCollector) _buildCollectorButtons(order.status),
                   if (widget.isCourier) _buildCourierButtons(order.status),
-                  if (!isStaff) _buildBuyerActions(order, isReturnPeriodActive),
+                  if (!isAnyStaff)
+                    _buildBuyerActions(order, isReturnPeriodActive),
 
                   const SizedBox(height: 30),
-                  _buildStatusTimeline(history, isStaff),
+                  _buildStatusTimeline(
+                    history,
+                    useDark,
+                    textColor,
+                    dividerColor,
+                  ),
 
                   const SizedBox(height: 30),
                   Text(
@@ -391,15 +414,18 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       item,
                       reviewedIds,
                       order.status,
-                      isStaff,
+                      isAnyStaff,
+                      cardColor,
+                      textColor,
+                      subTextColor,
                       f,
                     ),
                   ),
 
                   const SizedBox(height: 30),
-                  _buildTotalCard(order, isStaff, f),
+                  _buildTotalCard(order, useDark, f),
 
-                  if (!isStaff &&
+                  if (!isAnyStaff &&
                       order.paymentStatus == 'pending' &&
                       !_timeLeft.isNegative &&
                       _timeLeft != Duration.zero)
@@ -417,35 +443,86 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   // --- UI КОМПОНЕНТЫ ---
 
-  Widget _buildOrderCard(Order order, bool isStaff) {
-    final Color c = isStaff ? AdminColors.card : Colors.white;
-    final Color t = isStaff ? Colors.white : Colors.black;
-    final Color s = isStaff ? Colors.white38 : Colors.grey;
+  Widget _buildOrderCard(
+    Order order,
+    bool dark,
+    Color text,
+    Color sub,
+    Color div,
+  ) {
+    // Логика определения адреса
+    String displayAddress = "";
+    String deliveryLabel = "";
+
+    if (order.deliveryMethod == 'courier') {
+      deliveryLabel = 'ДОСТАВКА КУРЬЕРОМ';
+      displayAddress = order.shippingAddress ?? "Адрес не указан";
+    } else {
+      deliveryLabel = 'САМОВЫВОЗ (ИЗ МАГАЗИНА)';
+      displayAddress = 'пр-т. Победы, 141, Казань, Респ. Татарстан, Россия';
+    }
 
     return Container(
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: c,
+        color: dark ? AdminColors.card : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: isStaff ? null : Border.all(color: Colors.grey.shade200),
+        border: dark ? null : Border.all(color: div),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Используем 'text' и 'sub' вместо 't' и 's'
           _infoLine(
             'ЗАКАЗ',
             '#${order.id.substring(0, 8).toUpperCase()}',
-            t,
-            s,
+            text,
+            sub,
           ),
-          _infoLine('СТАТУС', _translateStatus(order.status), t, s),
+          _infoLine('СТАТУС', _translateStatus(order.status), text, sub),
           _infoLine(
             'ОПЛАТА',
             order.paymentStatus == 'succeeded' ? 'ОПЛАЧЕНО' : 'ОЖИДАЕТ',
             order.paymentStatus == 'succeeded' ? Colors.green : Colors.orange,
-            s,
+            sub,
           ),
-          if (order.shippingAddress != null)
-            _infoLine('АДРЕС', order.shippingAddress!, t, s),
+
+          const Divider(height: 30, color: Colors.white10),
+
+          Text(
+            deliveryLabel,
+            style: TextStyle(
+              color: sub,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                order.deliveryMethod == 'courier'
+                    ? Icons.local_shipping_outlined
+                    : Icons.storefront_outlined,
+                size: 20,
+                color: dark ? AdminColors.accentBlue : Colors.black87,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  displayAddress,
+                  style: TextStyle(
+                    color: text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -562,13 +639,18 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Widget _buildStatusTimeline(List<dynamic> history, bool isStaff) {
+  Widget _buildStatusTimeline(
+    List<dynamic> history,
+    bool dark,
+    Color text,
+    Color div,
+  ) {
     return Container(
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: isStaff ? AdminColors.card : Colors.white,
+        color: dark ? AdminColors.card : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: isStaff ? null : Border.all(color: Colors.grey.shade200),
+        border: dark ? null : Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,47 +658,52 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           Text(
             'ИСТОРИЯ СТАТУСОВ',
             style: TextStyle(
-              color: isStaff ? Colors.white : Colors.black,
+              color: text,
               fontWeight: FontWeight.w900,
               fontSize: 13,
             ),
           ),
           const SizedBox(height: 25),
           ...history.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 15),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: AdminColors.accentBlue,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 15),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _translateStatus(item['status']),
-                        style: TextStyle(
-                          color: isStaff ? Colors.white : Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
+            (item) => Row(
+              children: [
+                Column(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: AdminColors.accentBlue,
+                      size: 20,
+                    ),
+                    if (history.indexOf(item) != history.length - 1)
+                      Container(
+                        width: 2,
+                        height: 25,
+                        color: dark ? Colors.white10 : Colors.grey.shade200,
                       ),
-                      Text(
-                        DateFormat(
-                          'dd MMMM, HH:mm',
-                          'ru_RU',
-                        ).format(DateTime.parse(item['changed_at']).toLocal()),
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 11,
-                        ),
+                  ],
+                ),
+                const SizedBox(width: 15),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _translateStatus(item['status']),
+                      style: TextStyle(
+                        color: text,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                    Text(
+                      DateFormat(
+                        'dd MMMM, HH:mm',
+                        'ru_RU',
+                      ).format(DateTime.parse(item['changed_at']).toLocal()),
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
+                    const SizedBox(height: 15),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -628,11 +715,16 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     OrderItem item,
     Set<String> reviewedIds,
     String status,
-    bool isStaff,
+    bool staff,
+    Color color,
+    Color text,
+    Color sub,
     NumberFormat f,
   ) {
+    final bool isAnyStaff =
+        widget.isAdmin || widget.isCollector || widget.isCourier;
     final bool canReview =
-        !isStaff && status == 'delivered' && !reviewedIds.contains(item.id);
+        !staff && status == 'delivered' && !reviewedIds.contains(item.id);
     String imageUrl = "";
     if (item.variant != null && item.variant!.imageUrls.isNotEmpty) {
       imageUrl = item.variant!.imageUrls.first;
@@ -644,9 +736,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: isStaff ? AdminColors.card : Colors.white,
+        color: color,
         borderRadius: BorderRadius.circular(15),
-        border: isStaff ? null : Border.all(color: Colors.grey.shade200),
+        border: staff && !widget.isAdmin
+            ? Border.all(color: Colors.grey.shade200)
+            : null,
       ),
       child: Row(
         children: [
@@ -667,7 +761,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 Text(
                   item.product.name,
                   style: TextStyle(
-                    color: isStaff ? Colors.white : Colors.black,
+                    color: isAnyStaff ? Colors.white : Colors.black,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -704,10 +798,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
           Text(
             f.format(item.priceAtPurchase),
-            style: TextStyle(
-              color: isStaff ? Colors.white : Colors.black,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: text, fontWeight: FontWeight.bold),
           ),
         ],
       ),
