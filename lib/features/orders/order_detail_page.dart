@@ -428,7 +428,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     subTextColor,
                     dividerColor,
                   ),
-
+                  if (order.status == 'cancelled' &&
+                      order.cancellationReason != null)
+                    _buildCancellationCard(
+                      order.cancellationReason!,
+                      isAnyStaff,
+                    ),
                   // Кнопки управления (Роли)
                   if (widget.isAdmin) _buildAdminControls(order.status),
                   if (widget.isCollector) _buildCollectorButtons(order.status),
@@ -886,6 +891,53 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               color: isStaff ? AdminColors.accentBlue : Colors.black,
               fontSize: 22,
               fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCancellationCard(String reason, bool isStaff) {
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        // Используем красный оттенок, чтобы привлечь внимание
+        color: Colors.redAccent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                color: Colors.redAccent,
+                size: 20,
+              ),
+              SizedBox(width: 10),
+              Text(
+                'ПРИЧИНА ОТМЕНЫ',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            reason,
+            style: TextStyle(
+              color: isStaff ? Colors.white : Colors.black87,
+              fontSize: 15,
+              height: 1.5,
+              fontStyle: FontStyle.italic,
             ),
           ),
         ],
