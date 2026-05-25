@@ -608,7 +608,19 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildOrderCard(Order order, bool isStaff) {
+    final sub = isStaff ? Colors.white38 : Colors.grey;
     final text = isStaff ? Colors.white : Colors.black;
+    String displayAddress = "";
+    String deliveryLabel = "";
+
+    if (order.deliveryMethod == 'courier') {
+      deliveryLabel = 'ДОСТАВКА КУРЬЕРОМ';
+      displayAddress = order.shippingAddress ?? "Адрес не указан";
+    } else {
+      deliveryLabel = 'САМОВЫВОЗ (ИЗ МАГАЗИНА)';
+      displayAddress = 'пр-т. Победы, 141, Казань, Респ. Татарстан, Россия';
+    }
+
     return Container(
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
@@ -617,27 +629,57 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         border: isStaff ? null : Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _infoLine(
             'ЗАКАЗ',
             '#${order.id.substring(0, 8).toUpperCase()}',
             text,
-            Colors.grey,
+            sub,
           ),
-          _infoLine(
-            'СТАТУС',
-            _translateStatus(order.status),
-            text,
-            Colors.grey,
-          ),
+          _infoLine('СТАТУС', _translateStatus(order.status), text, sub),
           _infoLine(
             'ОПЛАТА',
             order.paymentStatus == 'succeeded' ? 'ОПЛАЧЕНО' : 'ОЖИДАЕТ',
             order.paymentStatus == 'succeeded' ? Colors.green : Colors.orange,
-            Colors.grey,
+            sub,
           ),
-          if (order.shippingAddress != null)
-            _infoLine('АДРЕС', order.shippingAddress!, text, Colors.grey),
+
+          const Divider(height: 30, color: Colors.white10),
+          Text(
+            deliveryLabel,
+            style: TextStyle(
+              color: sub,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                order.deliveryMethod == 'courier'
+                    ? Icons.local_shipping_outlined
+                    : Icons.storefront_outlined,
+                size: 20,
+                color: isStaff ? AdminColors.accentBlue : Colors.black87,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  displayAddress,
+                  style: TextStyle(
+                    color: text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
