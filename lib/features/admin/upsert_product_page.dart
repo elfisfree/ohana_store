@@ -336,7 +336,11 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
         backgroundColor: Colors.transparent,
         title: const Text(
           'УПРАВЛЕНИЕ ТОВАРНОЙ МАТРИЦЕЙ',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            color: Colors.white,
+          ),
         ),
         actions: [
           Padding(

@@ -230,7 +230,6 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // --- ЛЕВАЯ КОЛОНКА (ОСНОВНЫЕ ПРАВИЛА) ---
                     Expanded(
                       flex: 1,
                       child: _buildAdminCard('ОСНОВНЫЕ ПАРАМЕТРЫ', [
@@ -272,8 +271,6 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
                       ]),
                     ),
                     const SizedBox(width: 30),
-
-                    // --- ПРАВАЯ КОЛОНКА (ОГРАНИЧЕНИЯ И КАТЕГОРИИ) ---
                     Expanded(
                       flex: 1,
                       child: Column(

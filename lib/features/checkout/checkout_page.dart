@@ -432,11 +432,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             const Divider(height: 1, indent: 20, endIndent: 20),
                             RadioListTile<PaymentMethod>(
                               title: const Text(
-                                'При получении',
+                                'Оплатить позже',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               subtitle: const Text(
-                                'Наличными или картой курьеру',
+                                'После оформления заказа, вам дается 60 минут для оплаты',
                               ),
                               value: PaymentMethod.cash,
                               groupValue: _paymentMethod,
