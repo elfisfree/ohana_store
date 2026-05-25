@@ -8,6 +8,7 @@ import 'package:ohana_store/core/utils/app_notifications.dart';
 import 'package:ohana_store/features/profile/profile_provider.dart';
 import 'package:ohana_store/main.dart';
 import 'package:provider/provider.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class EditProfilePage extends StatefulWidget {
   final Map<String, dynamic> initialData;
@@ -22,12 +23,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
+  late final TextEditingController _phoneController;
   late final TextEditingController _patronymicController;
   late final TextEditingController _dobController;
 
   String? _selectedGender;
   DateTime? _selectedDob;
   bool _isLoading = false;
+
+  final _phoneFormatter = MaskTextInputFormatter(
+    mask: '+7 (###) ###-##-##',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
 
   @override
   void initState() {
@@ -48,7 +55,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ? DateFormat('dd.MM.yyyy').format(_selectedDob!)
           : '',
     );
-
+    _phoneController = TextEditingController(
+      text: widget.initialData['phone'] ?? '',
+    );
+    super.initState();
     _selectedGender = data['gender'];
   }
 
@@ -122,6 +132,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _saveProfile() async {
     if (!_isDataValid()) return;
 
+    if (_phoneController.text.isNotEmpty && !_phoneFormatter.isFill()) {
+      AppNotifications.showError(context, 'Введите корректный номер телефона');
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -131,6 +146,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         'patronymic': _patronymicController.text.trim(),
         'gender': _selectedGender,
         'date_of_birth': _selectedDob?.toIso8601String(),
+        'phone': _phoneController.text.trim(),
       };
 
       final userId = supabase.auth.currentUser!.id;
@@ -181,6 +197,33 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   _customField(
                     controller: _patronymicController,
                     label: 'Отчество',
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _phoneController,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [_phoneFormatter], // Применяем маску
+                    decoration: InputDecoration(
+                      labelText: 'ТЕЛЕФОН',
+                      hintText: '+7 (___) ___-__-__',
+                      filled: true,
+                      fillColor: Colors.white,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).primaryColor,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   GestureDetector(

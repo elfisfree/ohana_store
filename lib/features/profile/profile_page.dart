@@ -172,6 +172,8 @@ class ProfilePage extends StatelessWidget {
                           const Divider(),
                           _infoRow('Пол', gender),
                           const Divider(),
+                          _infoRow('Телефон', profile?['phone'] ?? 'Не указан'),
+                          const Divider(),
                           _infoRow('Email', provider.userEmail ?? ''),
                         ],
                       ),
