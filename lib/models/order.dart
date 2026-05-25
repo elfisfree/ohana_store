@@ -48,6 +48,7 @@ class Order {
   final String paymentStatus;
   final DateTime? expiresAt;
   final DateTime? deliveredAt;
+  final String? cancellationReason;
 
   Order({
     required this.id,
@@ -63,6 +64,7 @@ class Order {
     required this.paymentStatus,
     this.expiresAt,
     this.deliveredAt,
+    this.cancellationReason,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -88,6 +90,7 @@ class Order {
       deliveredAt: json['delivered_at'] != null
           ? DateTime.parse(json['delivered_at'])
           : null,
+      cancellationReason: json['cancellation_reason'] as String?,
     );
   }
 }

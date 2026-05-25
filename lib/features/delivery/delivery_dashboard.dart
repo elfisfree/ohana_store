@@ -128,7 +128,19 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                     ],
                   ),
                   child: InkWell(
-                    onTap: () => context.push('/delivery/order/${o['id']}'),
+                    onTap: () async {
+                      // Ждем результата закрытия страницы деталей
+                      final bool? needRefresh = await context.push<bool>(
+                        '/delivery/order/${o['id']}',
+                      );
+
+                      // Если вернулись с результатом 'true' — обновляем список
+                      if (needRefresh == true && mounted) {
+                        setState(() {
+                          _deliveryOrders = _fetchDeliveryOrders();
+                        });
+                      }
+                    },
                     borderRadius: BorderRadius.circular(20),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),

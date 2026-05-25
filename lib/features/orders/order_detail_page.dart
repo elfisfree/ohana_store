@@ -85,14 +85,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             )
             .eq('id', widget.orderId)
             .single(),
-
         orderItemIds.isEmpty
             ? Future.value([])
             : supabase
                   .from('product_reviews')
                   .select('order_item_id')
                   .inFilter('order_item_id', orderItemIds),
-
         supabase
             .from('order_status_history')
             .select()
@@ -100,19 +98,76 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             .order('changed_at', ascending: false),
       ]);
 
-      return (
-        Order.fromJson(results[0]),
-        (results[1] as List)
-            .map<String>((e) => e['order_item_id'] as String)
-            .toSet(),
-        results[2] as List<dynamic>,
-      );
+      final order = Order.fromJson(results[0] as Map<String, dynamic>);
+      final reviewedItemIds = (results[1] as List)
+          .map<String>((item) => item['order_item_id'] as String)
+          .toSet();
+      final history = results[2] as List<dynamic>;
+
+      return (order, reviewedItemIds, history);
     } catch (e) {
       print("Error fetching order details: $e");
-      throw Exception('Ошибка загрузки данных');
+      throw Exception('Не удалось загрузить данные');
     }
   }
 
+  Future<void> _cancelOrderByCourier(String reason) async {
+    try {
+      await supabase
+          .from('orders')
+          .update({'status': 'cancelled', 'cancellation_reason': reason})
+          .eq('id', widget.orderId);
+
+      if (mounted) {
+        AppNotifications.showSuccess(
+          context,
+          'Заказ отменен и возвращен на склад',
+        );
+        // Закрываем страницу и возвращаем true, чтобы список обновился
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) AppNotifications.showError(context, 'Ошибка отмены: $e');
+    }
+  }
+
+  void _showCourierCancelDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ПРИЧИНА ОТМЕНЫ'),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Напр: Не подошел размер, брак...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('НАЗАД'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () {
+              if (controller.text.trim().isEmpty) {
+                AppNotifications.showError(context, 'Укажите причину');
+                return;
+              }
+              Navigator.pop(ctx);
+              _cancelOrderByCourier(controller.text.trim());
+            },
+            child: const Text('ПОДТВЕРДИТЬ'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // БЕЗОПАСНЫЙ МЕТОД ОБНОВЛЕНИЯ (БЕЗ ОШИБОК SETSTATE)
   Future<void> _updateOrderStatus(String newStatus) async {
     try {
       await supabase
@@ -121,10 +176,17 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           .eq('id', widget.orderId);
 
       if (mounted) {
-        AppNotifications.showSuccess(context, 'Статус обновлен');
-        setState(() {
-          _orderDataFuture = _fetchAllOrderData();
-        });
+        AppNotifications.showSuccess(context, 'Статус заказа обновлен');
+
+        // ЕСЛИ ЭТО СОТРУДНИК (курьер или сборщик) - закрываем страницу, чтобы заказ исчез из списка
+        if (widget.isCourier || widget.isCollector) {
+          Navigator.of(context).pop(true);
+        } else {
+          // Если это админ или покупатель - просто обновляем данные на экране
+          setState(() {
+            _orderDataFuture = _fetchAllOrderData();
+          });
+        }
       }
     } catch (e) {
       if (mounted) AppNotifications.showError(context, 'Ошибка: $e');
@@ -135,27 +197,41 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: widget.isAdmin ? AdminColors.card : Colors.white,
-        title: const Text(
+        backgroundColor:
+            (widget.isAdmin || widget.isCollector || widget.isCourier)
+            ? AdminColors.card
+            : Colors.white,
+        title: Text(
           'ОТМЕНА ЗАКАЗА',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: (widget.isAdmin || widget.isCollector || widget.isCourier)
+                ? Colors.white
+                : Colors.black,
+          ),
+        ),
+        content: Text(
+          'Вы уверены? Действие нельзя отменить.',
+          style: TextStyle(
+            color: (widget.isAdmin || widget.isCollector || widget.isCourier)
+                ? Colors.white70
+                : Colors.black87,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('НЕТ'),
+            child: const Text('НАЗАД'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ДА'),
+            child: const Text('ОТМЕНИТЬ'),
           ),
         ],
       ),
     );
-    if (confirm == true) {
-      _updateOrderStatus('cancelled');
-    }
+    if (confirm == true) _updateOrderStatus('cancelled');
   }
 
   void _showReturnDialog() {
@@ -195,7 +271,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         'reason': reason,
       });
       await _updateOrderStatus('return_requested');
-      AppNotifications.showSuccess(context, 'Заявка на возврат отправлена');
     } catch (e) {
       AppNotifications.showError(context, 'Ошибка: $e');
     }
@@ -208,7 +283,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       case 'processing':
         return 'В СБОРКЕ';
       case 'shipped':
-        return 'В ПУТИ';
+        return 'ОТПРАВЛЕН';
       case 'delivered':
         return 'ДОСТАВЛЕН';
       case 'cancelled':
@@ -248,14 +323,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           style: TextStyle(fontWeight: FontWeight.w900, color: textColor),
         ),
         backgroundColor: Colors.transparent,
-        foregroundColor: textColor,
         elevation: 0,
+        iconTheme: IconThemeData(color: textColor),
       ),
       body: FutureBuilder<(Order, Set<String>, List<dynamic>)>(
         future: _orderDataFuture,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Ошибка: ${snapshot.error}',
+                style: TextStyle(color: textColor),
+              ),
+            );
           }
 
           final order = snapshot.data!.$1;
@@ -284,6 +367,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   _buildOrderCard(order, isStaff),
+
+                  // Кнопки управления (Роли)
                   if (widget.isAdmin) _buildAdminControls(order.status),
                   if (widget.isCollector) _buildCollectorButtons(order.status),
                   if (widget.isCourier) _buildCourierButtons(order.status),
@@ -330,105 +415,123 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Widget _buildProductTile(
-    OrderItem item,
-    Set<String> reviewedIds,
-    String orderStatus,
-    bool isStaff,
-    NumberFormat f,
-  ) {
-    String imageUrl = "";
-    if (item.variant != null && item.variant!.imageUrls.isNotEmpty) {
-      imageUrl = item.variant!.imageUrls.first;
-    } else if (item.product.variants.isNotEmpty &&
-        item.product.variants.first.imageUrls.isNotEmpty) {
-      imageUrl = item.product.variants.first.imageUrls.first;
-    }
+  // --- UI КОМПОНЕНТЫ ---
 
-    final bool canReview =
-        !widget.isAdmin &&
-        !widget.isCollector &&
-        !widget.isCourier &&
-        orderStatus == 'delivered' &&
-        !reviewedIds.contains(item.id);
+  Widget _buildOrderCard(Order order, bool isStaff) {
+    final Color c = isStaff ? AdminColors.card : Colors.white;
+    final Color t = isStaff ? Colors.white : Colors.black;
+    final Color s = isStaff ? Colors.white38 : Colors.grey;
 
     return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: isStaff ? AdminColors.card : Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        color: c,
+        borderRadius: BorderRadius.circular(20),
         border: isStaff ? null : Border.all(color: Colors.grey.shade200),
       ),
-      child: Row(
+      child: Column(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                  )
-                : Container(
-                    width: 60,
-                    height: 60,
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.image_not_supported),
-                  ),
+          _infoLine(
+            'ЗАКАЗ',
+            '#${order.id.substring(0, 8).toUpperCase()}',
+            t,
+            s,
           ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.product.name,
-                  style: TextStyle(
-                    color: isStaff ? Colors.white : Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'Размер: ${item.size.toInt()}, Цвет: ${item.variant?.colorName ?? 'Базовый'}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-                if (canReview)
-                  TextButton(
-                    onPressed: () async {
-                      final res = await context.push(
-                        '/add-review',
-                        extra: {
-                          'order_item_id': item.id,
-                          'product_id': item.product.id,
-                        },
-                      );
-                      if (res == true) {
-                        setState(() => _orderDataFuture = _fetchAllOrderData());
-                      }
-                    },
-                    child: const Text(
-                      'ОСТАВИТЬ ОТЗЫВ',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+          _infoLine('СТАТУС', _translateStatus(order.status), t, s),
+          _infoLine(
+            'ОПЛАТА',
+            order.paymentStatus == 'succeeded' ? 'ОПЛАЧЕНО' : 'ОЖИДАЕТ',
+            order.paymentStatus == 'succeeded' ? Colors.green : Colors.orange,
+            s,
           ),
-          Text(
-            f.format(item.priceAtPurchase),
-            style: TextStyle(
-              color: isStaff ? Colors.white : Colors.black,
-              fontWeight: FontWeight.bold,
+          if (order.shippingAddress != null)
+            _infoLine('АДРЕС', order.shippingAddress!, t, s),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdminControls(String status) {
+    if (status != 'pending' && status != 'processing' && status != 'shipped') {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AdminColors.card,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        children: [
+          if (status == 'pending')
+            ElevatedButton(
+              onPressed: () => _updateOrderStatus('processing'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AdminColors.accentBlue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: const Text('ОТПРАВИТЬ НА СБОРКУ'),
             ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: _confirmCancellation,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              side: const BorderSide(color: Colors.redAccent),
+              minimumSize: const Size(double.infinity, 45),
+            ),
+            child: const Text('ОТМЕНИТЬ ЗАКАЗ'),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildCollectorButtons(String status) {
+    if (status != 'processing') return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: ElevatedButton(
+        onPressed: () => _updateOrderStatus('shipped'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 55),
+        ),
+        child: const Text('СОБРАНО / ПЕРЕДАТЬ КУРЬЕРУ'),
+      ),
+    );
+  }
+
+  Widget _buildCourierButtons(String status) {
+    if (status == 'shipped') {
+      return Column(
+        children: [
+          ElevatedButton(
+            onPressed: () =>
+                _updateOrderStatus('delivered'), // Вызовет pop(true)
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 55),
+            ),
+            child: const Text('ЗАКАЗ ДОСТАВЛЕН'),
+          ),
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed:
+                _showCourierCancelDialog, // <-- ВЕРНУЛИ ВЫЗОВ НУЖНОГО ДИАЛОГА
+            child: const Text(
+              'ОТМЕНА / НЕ ДОСТАВЛЕНО',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   Widget _buildBuyerActions(Order order, bool isReturnActive) {
@@ -459,87 +562,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Widget _buildAdminControls(String status) {
-    final bool canSend = status == 'pending';
-    final bool canCancel =
-        status != 'cancelled' &&
-        status != 'delivered' &&
-        status != 'returned' &&
-        status != 'return_requested';
-    if (!canSend && !canCancel) return const SizedBox.shrink();
-    return Container(
-      margin: const EdgeInsets.only(top: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AdminColors.card,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        children: [
-          if (canSend)
-            ElevatedButton(
-              onPressed: () => _updateOrderStatus('processing'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AdminColors.accentBlue,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              child: const Text('ОТПРАВИТЬ НА СБОРКУ'),
-            ),
-          if (canSend && canCancel) const SizedBox(height: 10),
-          if (canCancel)
-            OutlinedButton(
-              onPressed: _confirmCancellation,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.redAccent,
-                side: const BorderSide(color: Colors.redAccent),
-                minimumSize: const Size(double.infinity, 45),
-              ),
-              child: const Text('ОТМЕНИТЬ ЗАКАЗ'),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCollectorButtons(String status) {
-    if (status != 'processing') return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 20),
-      child: ElevatedButton(
-        onPressed: () => _updateOrderStatus('shipped'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 55),
-        ),
-        child: const Text(
-          'СОБРАНО / ПЕРЕДАТЬ КУРЬЕРУ',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCourierButtons(String status) {
-    if (status != 'shipped') return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 20),
-      child: ElevatedButton(
-        onPressed: () => _updateOrderStatus('delivered'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.orange.shade800,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 55),
-        ),
-        child: const Text(
-          'ЗАКАЗ ДОСТАВЛЕН КЛИЕНТУ',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-
   Widget _buildStatusTimeline(List<dynamic> history, bool isStaff) {
     return Container(
       padding: const EdgeInsets.all(25),
@@ -561,45 +583,40 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
           const SizedBox(height: 25),
           ...history.map(
-            (item) => Row(
-              children: [
-                Column(
-                  children: [
-                    Icon(
-                      Icons.check_circle,
-                      color: AdminColors.accentBlue,
-                      size: 20,
-                    ),
-                    if (history.indexOf(item) != history.length - 1)
-                      Container(
-                        width: 2,
-                        height: 25,
-                        color: isStaff ? Colors.white10 : Colors.grey.shade200,
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 15),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: AdminColors.accentBlue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 15),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _translateStatus(item['status']),
+                        style: TextStyle(
+                          color: isStaff ? Colors.white : Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                  ],
-                ),
-                const SizedBox(width: 15),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _translateStatus(item['status']),
-                      style: TextStyle(
-                        color: isStaff ? Colors.white : Colors.black,
-                        fontWeight: FontWeight.bold,
+                      Text(
+                        DateFormat(
+                          'dd MMMM, HH:mm',
+                          'ru_RU',
+                        ).format(DateTime.parse(item['changed_at']).toLocal()),
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 11,
+                        ),
                       ),
-                    ),
-                    Text(
-                      DateFormat(
-                        'dd MMMM, HH:mm',
-                        'ru_RU',
-                      ).format(DateTime.parse(item['changed_at']).toLocal()),
-                      style: const TextStyle(color: Colors.grey, fontSize: 11),
-                    ),
-                    const SizedBox(height: 15),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -607,78 +624,90 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Widget _buildOrderCard(Order order, bool isStaff) {
-    final sub = isStaff ? Colors.white38 : Colors.grey;
-    final text = isStaff ? Colors.white : Colors.black;
-    String displayAddress = "";
-    String deliveryLabel = "";
-
-    if (order.deliveryMethod == 'courier') {
-      deliveryLabel = 'ДОСТАВКА КУРЬЕРОМ';
-      displayAddress = order.shippingAddress ?? "Адрес не указан";
-    } else {
-      deliveryLabel = 'САМОВЫВОЗ (ИЗ МАГАЗИНА)';
-      displayAddress = 'пр-т. Победы, 141, Казань, Респ. Татарстан, Россия';
+  Widget _buildProductTile(
+    OrderItem item,
+    Set<String> reviewedIds,
+    String status,
+    bool isStaff,
+    NumberFormat f,
+  ) {
+    final bool canReview =
+        !isStaff && status == 'delivered' && !reviewedIds.contains(item.id);
+    String imageUrl = "";
+    if (item.variant != null && item.variant!.imageUrls.isNotEmpty) {
+      imageUrl = item.variant!.imageUrls.first;
+    } else if (item.product.variants.isNotEmpty) {
+      imageUrl = item.product.variants.first.imageUrls.first;
     }
 
     return Container(
-      padding: const EdgeInsets.all(25),
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: isStaff ? AdminColors.card : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         border: isStaff ? null : Border.all(color: Colors.grey.shade200),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          _infoLine(
-            'ЗАКАЗ',
-            '#${order.id.substring(0, 8).toUpperCase()}',
-            text,
-            sub,
-          ),
-          _infoLine('СТАТУС', _translateStatus(order.status), text, sub),
-          _infoLine(
-            'ОПЛАТА',
-            order.paymentStatus == 'succeeded' ? 'ОПЛАЧЕНО' : 'ОЖИДАЕТ',
-            order.paymentStatus == 'succeeded' ? Colors.green : Colors.orange,
-            sub,
-          ),
-
-          const Divider(height: 30, color: Colors.white10),
-          Text(
-            deliveryLabel,
-            style: TextStyle(
-              color: sub,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              imageUrl,
+              width: 60,
+              height: 60,
+              fit: BoxFit.cover,
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                order.deliveryMethod == 'courier'
-                    ? Icons.local_shipping_outlined
-                    : Icons.storefront_outlined,
-                size: 20,
-                color: isStaff ? AdminColors.accentBlue : Colors.black87,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  displayAddress,
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.product.name,
                   style: TextStyle(
-                    color: text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
+                    color: isStaff ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ],
+                Text(
+                  'Размер: ${item.size.toInt()}, Цвет: ${item.variant?.colorName ?? 'Базовый'}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                if (canReview)
+                  TextButton(
+                    onPressed: () async {
+                      final res = await context.push(
+                        '/add-review',
+                        extra: {
+                          'order_item_id': item.id,
+                          'product_id': item.product.id,
+                        },
+                      );
+                      if (res == true) {
+                        setState(() {
+                          _orderDataFuture = _fetchAllOrderData();
+                        });
+                      }
+                    },
+                    child: const Text(
+                      'ОСТАВИТЬ ОТЗЫВ',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Text(
+            f.format(item.priceAtPurchase),
+            style: TextStyle(
+              color: isStaff ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -745,7 +774,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 ),
               );
               if (success == true) {
-                setState(() => _orderDataFuture = _fetchAllOrderData());
+                setState(() {
+                  _orderDataFuture = _fetchAllOrderData();
+                });
               }
             },
             child: const Text('ОПЛАТИТЬ СЕЙЧАС'),
