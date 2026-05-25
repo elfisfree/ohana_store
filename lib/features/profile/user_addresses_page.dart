@@ -49,14 +49,22 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
         await supabase.from('user_addresses').insert({
           'user_id': supabase.auth.currentUser!.id,
           'name': result['name'],
-          'address_line': result['address'],
+          'city': result['city'],
+          'street': result['street'],
+          'house': result['house'],
+          'floor': result['floor'],
+          'apartment': result['apartment'],
         });
+
         AppNotifications.showSuccess(context, 'Адрес успешно сохранен');
+
+        // --- ГЛАВНОЕ ИСПРАВЛЕНИЕ: Используем { } вместо => ---
         setState(() {
           _addressesFuture = _fetchAddresses();
         });
+        // ---------------------------------------------------
       } catch (e) {
-        AppNotifications.showError(context, 'Не удалось добавить адрес: $e');
+        AppNotifications.showError(context, 'Не удалось добавить адрес');
       }
     }
   }
@@ -64,11 +72,15 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
   Future<void> _deleteAddress(String addressId) async {
     try {
       await supabase.from('user_addresses').delete().eq('id', addressId);
+
       if (mounted) {
         AppNotifications.showSuccess(context, 'Адрес удален');
+
+        // --- ГЛАВНОЕ ИСПРАВЛЕНИЕ: Используем { } вместо => ---
         setState(() {
           _addressesFuture = _fetchAddresses();
         });
+        // ---------------------------------------------------
       }
     } catch (e) {
       if (mounted) {
@@ -168,7 +180,7 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      address.addressLine,
+                      address.fullAddress,
                       style: const TextStyle(color: Colors.black87),
                     ),
                   ),
@@ -197,22 +209,18 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
 
 class _AddAddressDialog extends StatefulWidget {
   const _AddAddressDialog();
-
   @override
   State<_AddAddressDialog> createState() => __AddAddressDialogState();
 }
 
 class __AddAddressDialogState extends State<_AddAddressDialog> {
-  final _nameController = TextEditingController();
-  final _addressController = TextEditingController();
+  final _nameController = TextEditingController(text: 'Дом');
+  final _cityController = TextEditingController(text: 'Казань');
+  final _streetController = TextEditingController();
+  final _houseController = TextEditingController();
+  final _floorController = TextEditingController();
+  final _aptController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _addressController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,37 +232,65 @@ class __AddAddressDialogState extends State<_AddAddressDialog> {
       ),
       content: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildField(_nameController, 'Название', 'Напр: Дом, Работа'),
-            const SizedBox(height: 16),
-            _buildField(_addressController, 'Адрес', 'Город, улица, дом...'),
-          ],
+        child: SingleChildScrollView(
+          // Чтобы не вылетало на маленьких окнах
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildField(
+                _nameController,
+                'Название (напр: Работа)',
+                isRequired: true,
+              ),
+              const SizedBox(height: 12),
+              _buildField(_cityController, 'Город', isRequired: true),
+              const SizedBox(height: 12),
+              _buildField(_streetController, 'Улица', isRequired: true),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: _buildField(
+                      _houseController,
+                      'Дом',
+                      isRequired: true,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 1,
+                    child: _buildField(_floorController, 'Эт'),
+                  ), // Поле этажа
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: _buildField(_aptController, 'Кв/Офис'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-      actionsPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
-            'ОТМЕНА',
-            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
-          ),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('ОТМЕНА'),
         ),
         ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              Navigator.of(context).pop({
+              Navigator.pop(context, {
                 'name': _nameController.text.trim(),
-                'address': _addressController.text.trim(),
+                'city': _cityController.text.trim(),
+                'street': _streetController.text.trim(),
+                'house': _houseController.text.trim(),
+                'floor': _floorController.text.trim(),
+                'apartment': _aptController.text.trim(),
               });
             }
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
-          ),
           child: const Text('СОХРАНИТЬ'),
         ),
       ],
@@ -262,15 +298,14 @@ class __AddAddressDialogState extends State<_AddAddressDialog> {
   }
 
   Widget _buildField(
-    TextEditingController controller,
-    String label,
-    String hint,
-  ) {
+    TextEditingController ctrl,
+    String label, {
+    bool isRequired = false,
+  }) {
     return TextFormField(
-      controller: controller,
+      controller: ctrl,
       decoration: InputDecoration(
         labelText: label,
-        hintText: hint,
         filled: true,
         fillColor: Colors.grey.shade100,
         border: OutlineInputBorder(
@@ -278,7 +313,7 @@ class __AddAddressDialogState extends State<_AddAddressDialog> {
           borderSide: BorderSide.none,
         ),
       ),
-      validator: (v) => v!.isEmpty ? 'Заполните поле' : null,
+      validator: isRequired ? (v) => v!.isEmpty ? 'Заполните' : null : null,
     );
   }
 }

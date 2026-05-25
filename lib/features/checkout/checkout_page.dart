@@ -276,7 +276,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       }
       finalShippingAddress = _userAddresses
           .firstWhere((addr) => addr.id == _selectedAddressId)
-          .addressLine;
+          .fullAddress;
     }
 
     setState(() => _isConfirming = true);
@@ -376,7 +376,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 (addr) => DropdownMenuItem(
                                   value: addr.id,
                                   child: Text(
-                                    '${addr.name} (${addr.addressLine})',
+                                    '${addr.name} (${addr.fullAddress})',
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
