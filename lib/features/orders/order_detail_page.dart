@@ -111,7 +111,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
   }
 
-  Future<void> _cancelOrderByCourier(String reason) async {
+  Future<void> _cancelOrderByStaff(String reason) async {
     try {
       await supabase
           .from('orders')
@@ -121,9 +121,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       if (mounted) {
         AppNotifications.showSuccess(
           context,
-          'Заказ отменен и возвращен на склад',
+          'Заказ отменен и товары вернулись на склад',
         );
-        // Закрываем страницу и возвращаем true, чтобы список обновился
+        // Возвращаемся в список (с сигналом об обновлении)
         Navigator.of(context).pop(true);
       }
     } catch (e) {
@@ -131,43 +131,89 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
   }
 
-  void _showCourierCancelDialog() {
+  void _showStaffCancelDialog() {
     final controller = TextEditingController();
+
+    // Определяем тему окна
+    final bool useDark = widget.isAdmin;
+    final Color dialogBg = useDark ? AdminColors.card : Colors.white;
+    final Color textColor = useDark ? Colors.white : Colors.black;
+    final Color inputBg = useDark ? AdminColors.sidebar : Colors.grey[100]!;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ПРИЧИНА ОТМЕНЫ'),
+        backgroundColor: dialogBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'ПРИЧИНА ОТМЕНЫ',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.1,
+            fontSize: 18,
+          ),
+        ),
         content: TextField(
           controller: controller,
           maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Напр: Не подошел размер, брак...',
-            border: OutlineInputBorder(),
+          style: TextStyle(color: textColor),
+          decoration: InputDecoration(
+            hintText: 'Напр: Брак, нет в наличии...',
+            hintStyle: TextStyle(color: useDark ? Colors.white24 : Colors.grey),
+            filled: true,
+            fillColor: inputBg,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
+        actionsPadding: const EdgeInsets.symmetric(
+          horizontal: 15,
+          vertical: 10,
+        ),
         actions: [
+          // Кнопка НАЗАД (теперь контрастная)
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('НАЗАД'),
+            child: Text(
+              'НАЗАД',
+              style: TextStyle(
+                color: useDark ? Colors.white60 : Colors.grey[600],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
+          // Кнопка ОТМЕНЫ (яркая и четкая)
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
             onPressed: () {
               if (controller.text.trim().isEmpty) {
-                AppNotifications.showError(context, 'Укажите причину');
+                AppNotifications.showError(context, 'Укажите причину отмены');
                 return;
               }
               Navigator.pop(ctx);
-              _cancelOrderByCourier(controller.text.trim());
+              _cancelOrderByStaff(controller.text.trim());
             },
-            child: const Text('ПОДТВЕРДИТЬ'),
+            child: const Text(
+              'ОТМЕНИТЬ ЗАКАЗ',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // БЕЗОПАСНЫЙ МЕТОД ОБНОВЛЕНИЯ (БЕЗ ОШИБОК SETSTATE)
   Future<void> _updateOrderStatus(String newStatus) async {
     try {
       await supabase
@@ -178,11 +224,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       if (mounted) {
         AppNotifications.showSuccess(context, 'Статус заказа обновлен');
 
-        // ЕСЛИ ЭТО СОТРУДНИК (курьер или сборщик) - закрываем страницу, чтобы заказ исчез из списка
         if (widget.isCourier || widget.isCollector) {
           Navigator.of(context).pop(true);
         } else {
-          // Если это админ или покупатель - просто обновляем данные на экране
           setState(() {
             _orderDataFuture = _fetchAllOrderData();
           });
@@ -567,19 +611,37 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildCollectorButtons(String status) {
-    if (status != 'processing') return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 20),
-      child: ElevatedButton(
-        onPressed: () => _updateOrderStatus('shipped'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 55),
-        ),
-        child: const Text('СОБРАНО / ПЕРЕДАТЬ КУРЬЕРУ'),
-      ),
-    );
+    if (status == 'pending' || status == 'processing') {
+      return Column(
+        children: [
+          ElevatedButton(
+            onPressed: () => _updateOrderStatus(
+              status == 'pending' ? 'processing' : 'shipped',
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: status == 'pending' ? Colors.blue : Colors.green,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 55),
+            ),
+            child: Text(status == 'pending' ? 'НАЧАТЬ СБОРКУ' : 'СОБРАНО'),
+          ),
+          const SizedBox(height: 10),
+          TextButton.icon(
+            onPressed: _showStaffCancelDialog,
+            icon: const Icon(
+              Icons.error_outline,
+              color: Colors.redAccent,
+              size: 18,
+            ),
+            label: const Text(
+              'ОТМЕНИТЬ (БРАК / НЕТ ТОВАРА)',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   Widget _buildCourierButtons(String status) {
@@ -587,8 +649,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       return Column(
         children: [
           ElevatedButton(
-            onPressed: () =>
-                _updateOrderStatus('delivered'), // Вызовет pop(true)
+            onPressed: () => _updateOrderStatus('delivered'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
@@ -598,10 +659,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
           const SizedBox(height: 10),
           TextButton(
-            onPressed:
-                _showCourierCancelDialog, // <-- ВЕРНУЛИ ВЫЗОВ НУЖНОГО ДИАЛОГА
+            onPressed: _showStaffCancelDialog, // Используем общий метод
             child: const Text(
-              'ОТМЕНА / НЕ ДОСТАВЛЕНО',
+              'ОТМЕНА',
               style: TextStyle(color: Colors.redAccent),
             ),
           ),
