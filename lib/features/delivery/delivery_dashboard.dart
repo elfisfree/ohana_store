@@ -296,6 +296,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                                     } catch (e) {
                                       // Если на телефоне вообще нет карт и браузера (что невозможно), покажем ошибку
                                       AppNotifications.showError(
+                                        // ignore: use_build_context_synchronously
                                         context,
                                         'Не удалось открыть карту',
                                       );

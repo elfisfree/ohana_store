@@ -135,7 +135,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             .from('cart_items')
             .select(
               '*, products(*, brands(*)), product_variants(*, product_stock(*))',
-            ) // Добавили product_stock(*)
+            )
             .inFilter('id', widget.selectedCartItemIds.toList()),
 
         supabase
@@ -173,8 +173,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _updateItemQuantity(CartItem item, int newQuantity) async {
     if (newQuantity < 1) return;
-
-    // 1. Проверяем наличие на складе (если увеличиваем)
     if (newQuantity > item.quantity) {
       final stock = item.variant?.stock.firstWhere(
         (s) => s.size == item.size,
@@ -185,11 +183,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
     }
-
-    // 2. Обновляем в базе через провайдер (чтобы корзина тоже знала об изменениях)
     await context.read<CartProvider>().updateQuantity(item.id, newQuantity);
-
-    // 3. Обновляем локальное состояние страницы оформления
     setState(() {
       final index = _selectedItems.indexWhere((i) => i.id == item.id);
       if (index != -1) {
@@ -200,7 +194,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           product: item.product,
           variant: item.variant,
         );
-        _calculateTotals(); // Пересчитываем итоговую сумму заказа
+        _calculateTotals();
       }
     });
   }

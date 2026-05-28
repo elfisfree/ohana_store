@@ -62,7 +62,6 @@ GoRouter createRouter(AuthNotifier authNotifier) {
     refreshListenable: authNotifier,
 
     routes: [
-      // --- 1. ПУБЛИЧНЫЕ СТРАНИЦЫ ---
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
@@ -76,8 +75,6 @@ GoRouter createRouter(AuthNotifier authNotifier) {
         path: '/register',
         builder: (context, state) => const RegisterPage(),
       ),
-
-      // --- 2. ДЕСТОПНАЯ АДМИН-ПАНЕЛЬ ---
       ShellRoute(
         navigatorKey: _adminShellNavigatorKey,
         builder: (context, state, child) => AdminDesktopShell(child: child),
@@ -161,8 +158,6 @@ GoRouter createRouter(AuthNotifier authNotifier) {
           ),
         ],
       ),
-
-      // --- 3. СКЛАД (СБОРЩИК) ---
       GoRoute(
         path: '/warehouse',
         builder: (context, state) => const WarehouseDashboard(),
@@ -176,8 +171,6 @@ GoRouter createRouter(AuthNotifier authNotifier) {
           ),
         ],
       ),
-
-      // --- 4. ДОСТАВКА (КУРЬЕР) ---
       GoRoute(
         path: '/delivery',
         builder: (context, state) => const DeliveryDashboard(),
@@ -191,8 +184,6 @@ GoRouter createRouter(AuthNotifier authNotifier) {
           ),
         ],
       ),
-
-      // --- 5. МОБИЛЬНАЯ КЛИЕНТСКАЯ ЧАСТЬ (SHELL) ---
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => ScaffoldWithNavBar(child: child),
@@ -263,8 +254,6 @@ GoRouter createRouter(AuthNotifier authNotifier) {
           ),
         ],
       ),
-
-      // --- 6. ОБЩИЕ ОВЕРЛЕИ ---
       GoRoute(
         path: '/product/:id',
         builder: (context, state) =>

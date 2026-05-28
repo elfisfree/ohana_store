@@ -1,10 +1,13 @@
 // lib/features/auth/screens/register_page.dart
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ohana_store/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -20,6 +23,13 @@ class _RegisterPageState extends State<RegisterPage> {
   final _firstNameController = TextEditingController();
   final _patronymicController = TextEditingController();
   final _dobController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  final _phoneFormatter = MaskTextInputFormatter(
+    mask: '+7 (###) ###-##-##',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
+
   DateTime? _selectedDate;
   String? _selectedGender;
 
@@ -55,6 +65,15 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       return;
     }
+    if (!_phoneFormatter.isFill()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Введите полный номер телефона'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -71,6 +90,7 @@ class _RegisterPageState extends State<RegisterPage> {
           'date_of_birth': _selectedDate?.toIso8601String(),
           'avatar_url': '',
           'gender': _selectedGender,
+          'phone': _phoneController.text.trim(),
         },
       );
 
@@ -119,6 +139,7 @@ class _RegisterPageState extends State<RegisterPage> {
     _firstNameController.dispose();
     _patronymicController.dispose();
     _dobController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -228,6 +249,26 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
+                                controller: _phoneController,
+                                style: const TextStyle(color: Colors.white),
+                                keyboardType: TextInputType.phone,
+                                inputFormatters: [_phoneFormatter],
+                                decoration:
+                                    _buildInputDecoration(
+                                      'Телефон',
+                                      Icons.phone_android_outlined,
+                                    ).copyWith(
+                                      hintText: '+7 (___) ___-__-__',
+                                      hintStyle: const TextStyle(
+                                        color: Colors.white24,
+                                      ),
+                                    ),
+                                validator: (v) =>
+                                    v!.isEmpty ? 'Обязательное поле' : null,
+                              ),
+                              const SizedBox(height: 16),
+
+                              TextFormField(
                                 controller: _dobController,
                                 style: const TextStyle(color: Colors.white),
                                 decoration: _buildInputDecoration(
@@ -256,7 +297,10 @@ class _RegisterPageState extends State<RegisterPage> {
                                       child: RadioListTile<String>(
                                         title: const Text(
                                           'Мужской',
-                                          style: TextStyle(color: Colors.white),
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                         value: 'male',
                                         groupValue: _selectedGender,
@@ -270,7 +314,10 @@ class _RegisterPageState extends State<RegisterPage> {
                                       child: RadioListTile<String>(
                                         title: const Text(
                                           'Женский',
-                                          style: TextStyle(color: Colors.white),
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                         value: 'female',
                                         groupValue: _selectedGender,

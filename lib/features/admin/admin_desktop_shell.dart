@@ -12,7 +12,6 @@ class AdminDesktopShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Получаем данные профиля админа через Watch для реактивности
     final profile = context.watch<ProfileProvider>().profileData;
     final String adminName = profile != null
         ? "${profile['first_name']} ${profile['last_name']}"
@@ -22,7 +21,6 @@ class AdminDesktopShell extends StatelessWidget {
       backgroundColor: AdminColors.background,
       body: Row(
         children: [
-          // --- 1. ЛЕВАЯ ПАНЕЛЬ (SIDEBAR) ---
           Container(
             width: 260,
             color: AdminColors.sidebar,
@@ -58,8 +56,6 @@ class AdminDesktopShell extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 40),
-
-                // Пункты меню
                 _menuItem(
                   context,
                   'Дашборд',
@@ -103,26 +99,18 @@ class AdminDesktopShell extends StatelessWidget {
                   '/admin/reviews',
                 ),
 
-                const Spacer(), // Прижимает кнопку выхода вниз
+                const Spacer(),
 
-                _menuItem(
-                  context,
-                  'Выход',
-                  Icons.logout,
-                  '', // Маршрут не важен для логаута
-                  isLogout: true,
-                ),
+                _menuItem(context, 'Выход', Icons.logout, '', isLogout: true),
                 const SizedBox(height: 20),
               ],
             ),
           ),
-
-          // --- 2. ПРАВАЯ ЧАСТЬ (ШАПКА И КОНТЕНТ) ---
           Expanded(
             child: Column(
               children: [
-                _buildHeader(context, adminName), // Верхняя полоса
-                Expanded(child: child), // Сюда GoRouter вставляет страницы
+                _buildHeader(context, adminName),
+                Expanded(child: child),
               ],
             ),
           ),
@@ -131,7 +119,6 @@ class AdminDesktopShell extends StatelessWidget {
     );
   }
 
-  // --- ШАПКА ---
   Widget _buildHeader(BuildContext context, String name) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
@@ -146,29 +133,7 @@ class AdminDesktopShell extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          SizedBox(
-            width: 300,
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Поиск по системе...',
-                hintStyle: const TextStyle(color: Colors.white24),
-                fillColor: AdminColors.card,
-                filled: true,
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: Colors.white38,
-                  size: 20,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
           const SizedBox(width: 25),
-          const Icon(Icons.notifications_none_rounded, color: Colors.white54),
           const SizedBox(width: 20),
           const VerticalDivider(
             color: Colors.white10,
@@ -189,7 +154,6 @@ class AdminDesktopShell extends StatelessWidget {
     );
   }
 
-  // --- УНИВЕРСАЛЬНЫЙ ПУНКТ МЕНЮ ---
   Widget _menuItem(
     BuildContext context,
     String title,
@@ -197,7 +161,6 @@ class AdminDesktopShell extends StatelessWidget {
     String route, {
     bool isLogout = false,
   }) {
-    // Проверяем, активен ли этот маршрут в данный момент
     final bool isSelected =
         !isLogout && GoRouterState.of(context).matchedLocation == route;
 

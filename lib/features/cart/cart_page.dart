@@ -325,7 +325,7 @@ class CartPage extends StatelessWidget {
                 elevation: 0,
               ),
               child: Text(
-                "ОФОРМИТЬ ЗАКАЗ (${cartProvider.selectedItemIds.length})",
+                "ОФОРМИТЬ ЗАКАЗ",
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
                   fontSize: 16,
