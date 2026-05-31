@@ -200,27 +200,34 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Future<void> _showAddAddressDialog() async {
-    final newAddress = await showDialog<Map<String, String>>(
+    final result = await showDialog<Map<String, String>>(
       context: context,
       builder: (context) => const _AddAddressDialog(),
     );
 
-    if (newAddress != null && mounted) {
+    if (result != null && mounted) {
       try {
         await supabase.from('user_addresses').insert({
           'user_id': supabase.auth.currentUser!.id,
-          'name': newAddress['name'],
-          'address_line': newAddress['address'],
+          'name': result['name'],
+          'city': result['city'],
+          'street': result['street'],
+          'house': result['house'],
+          'floor': result['floor'],
+          'apartment': result['apartment'],
         });
         await _fetchInitialData(selectLastAddress: true);
+
+        AppNotifications.showSuccess(context, 'Адрес добавлен');
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppNotifications.showError(context, 'Ошибка сохранения адреса: $e');
       }
+    } else {
+      setState(
+        () => _selectedAddressId = _userAddresses.isNotEmpty
+            ? _userAddresses.first.id
+            : null,
+      );
     }
   }
 
@@ -370,8 +377,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 (addr) => DropdownMenuItem(
                                   value: addr.id,
                                   child: Text(
-                                    '${addr.name} (${addr.fullAddress})',
+                                    '${addr.name}: ${addr.fullAddress}',
                                     overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -794,61 +805,117 @@ class _AddAddressDialog extends StatefulWidget {
 }
 
 class __AddAddressDialogState extends State<_AddAddressDialog> {
-  final _nameController = TextEditingController();
-  final _addressController = TextEditingController();
+  final _nameController = TextEditingController(text: 'Дом');
+  final _cityController = TextEditingController(text: 'Казань');
+  final _streetController = TextEditingController();
+  final _houseController = TextEditingController();
+  final _floorController = TextEditingController();
+  final _aptController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
     _nameController.dispose();
-    _addressController.dispose();
+    _cityController.dispose();
+    _streetController.dispose();
+    _houseController.dispose();
+    _floorController.dispose();
+    _aptController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Новый адрес'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text(
+        'НОВЫЙ АДРЕС',
+        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+      ),
       content: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Название (напр., Дом)',
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildField(
+                _nameController,
+                'Название (напр: Работа)',
+                isRequired: true,
               ),
-              validator: (v) =>
-                  v!.trim().isEmpty ? 'Это обязательное поле' : null,
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _addressController,
-              decoration: const InputDecoration(labelText: 'Адрес'),
-              validator: (v) =>
-                  v!.trim().isEmpty ? 'Это обязательное поле' : null,
-            ),
-          ],
+              const SizedBox(height: 12),
+              _buildField(_cityController, 'Город', isRequired: true),
+              const SizedBox(height: 12),
+              _buildField(_streetController, 'Улица', isRequired: true),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: _buildField(
+                      _houseController,
+                      'Дом',
+                      isRequired: true,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(flex: 1, child: _buildField(_floorController, 'Эт')),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: _buildField(_aptController, 'Кв/Оф'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Отмена'),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('ОТМЕНА'),
         ),
         ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              Navigator.of(context).pop({
+              Navigator.pop(context, {
                 'name': _nameController.text.trim(),
-                'address': _addressController.text.trim(),
+                'city': _cityController.text.trim(),
+                'street': _streetController.text.trim(),
+                'house': _houseController.text.trim(),
+                'floor': _floorController.text.trim(),
+                'apartment': _aptController.text.trim(),
               });
             }
           },
-          child: const Text('Сохранить'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('СОХРАНИТЬ'),
         ),
       ],
+    );
+  }
+
+  Widget _buildField(
+    TextEditingController ctrl,
+    String label, {
+    bool isRequired = false,
+  }) {
+    return TextFormField(
+      controller: ctrl,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      validator: isRequired ? (v) => v!.isEmpty ? '!' : null : null,
     );
   }
 }
