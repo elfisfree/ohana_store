@@ -815,10 +815,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               children: [
                 Text(
                   item.product.name,
-                  style: TextStyle(
-                    color: isAnyStaff ? Colors.white : Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: text, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   'Размер: ${item.size.toInt()}, Цвет: ${item.variant?.colorName ?? 'Базовый'}',

@@ -15,85 +15,92 @@ class AdminUsersPage extends StatefulWidget {
 }
 
 class _AdminUsersPageState extends State<AdminUsersPage> {
+  final ScrollController _scrollController = ScrollController();
   List<AdminUser> _allUsers = [];
-  List<AdminUser> _filteredUsers = [];
   bool _isLoading = true;
+  bool _isFetchingMore = false;
+  bool _hasNextPage = true;
+  final int _pageSize = 20;
   String _searchQuery = '';
-  bool _isFilterVisible = true;
-
   String _selectedRole = 'all';
   RangeValues _ageRange = const RangeValues(0, 100);
-
   final double _minYear = 2024;
   final double _maxYear = DateTime.now().year.toDouble();
   late RangeValues _yearRange;
+  bool _isFilterVisible = true;
 
   @override
   void initState() {
     super.initState();
     _yearRange = RangeValues(_minYear, _maxYear);
-    _fetchUsers();
-  }
-
-  int _calculateAge(DateTime? birthDate) {
-    if (birthDate == null) return -1;
-    DateTime today = DateTime.now();
-    int age = today.year - birthDate.year;
-    if (today.month < birthDate.month ||
-        (today.month == birthDate.month && today.day < birthDate.day)) {
-      age--;
-    }
-    return age;
-  }
-
-  void _applyFilters() {
-    setState(() {
-      _filteredUsers = _allUsers.where((user) {
-        final matchesSearch = '${user.firstName} ${user.lastName} ${user.email}'
-            .toLowerCase()
-            .contains(_searchQuery.toLowerCase());
-        final matchesRole =
-            _selectedRole == 'all' || user.role == _selectedRole;
-
-        int age = _calculateAge(user.dateOfBirth);
-        bool matchesAge =
-            age == -1 || (age >= _ageRange.start && age <= _ageRange.end);
-
-        int regYear = user.createdAt.year;
-        final matchesYear =
-            regYear >= _yearRange.start && regYear <= _yearRange.end;
-
-        return matchesSearch && matchesRole && matchesAge && matchesYear;
-      }).toList();
+    _loadInitialData();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        if (!_isFetchingMore && _hasNextPage) {
+          _fetchMoreUsers();
+        }
+      }
     });
   }
 
-  Future<void> _fetchUsers() async {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() {
+      _isLoading = true;
+      _allUsers = [];
+      _hasNextPage = true;
+    });
+    await _fetchMoreUsers();
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _fetchMoreUsers() async {
+    if (_isFetchingMore) return;
+    setState(() => _isFetchingMore = true);
+
     try {
-      final response = await supabase.from('admin_users_view').select();
-      final users = (response as List)
+      final int from = _allUsers.length;
+      final int to = from + _pageSize - 1;
+      var query = supabase.from('admin_users_view').select();
+      if (_searchQuery.isNotEmpty) {
+        query = query.or(
+          'first_name.ilike.%$_searchQuery%,last_name.ilike.%$_searchQuery%,email.ilike.%$_searchQuery%',
+        );
+      }
+      if (_selectedRole != 'all') {
+        query = query.eq('role', _selectedRole);
+      }
+      final response = await query
+          .range(from, to)
+          .order('created_at', ascending: false);
+
+      final newUsers = (response as List)
           .map((u) => AdminUser.fromJson(u))
           .toList();
-      setState(() {
-        _allUsers = users;
-        _isLoading = false;
-      });
-      _applyFilters();
+
+      if (mounted) {
+        setState(() {
+          _allUsers.addAll(newUsers);
+          _isFetchingMore = false;
+          if (newUsers.length < _pageSize) {
+            _hasNextPage = false;
+          }
+        });
+      }
     } catch (e) {
       print('Error fetching users: $e');
+      setState(() => _isFetchingMore = false);
     }
   }
 
-  Future<void> _changeRole(AdminUser user, String newRole) async {
-    try {
-      await supabase
-          .from('profiles')
-          .update({'role': newRole})
-          .eq('id', user.id);
-      _fetchUsers();
-    } catch (e) {
-      print('Error changing role: $e');
-    }
+  void _onFilterChanged() {
+    _loadInitialData();
   }
 
   @override
@@ -103,7 +110,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       body: Padding(
         padding: const EdgeInsets.all(30.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -117,12 +123,11 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
                       ),
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      'Всего найдено: ${_filteredUsers.length}',
+                      'Загружено: ${_allUsers.length}',
                       style: const TextStyle(
                         color: AdminColors.accentBlue,
                         fontWeight: FontWeight.bold,
@@ -144,28 +149,42 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             ),
             const SizedBox(height: 25),
 
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: _filteredUsers.length,
-                          itemBuilder: (context, index) =>
-                              _buildUserCard(_filteredUsers[index]),
-                        ),
-                ),
-                if (_isFilterVisible) ...[
-                  const SizedBox(width: 30),
-                  SizedBox(
-                    width: 300,
-                    child: Column(children: [_buildFilterCard()]),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : ListView.builder(
+                            controller: _scrollController,
+                            itemCount:
+                                _allUsers.length + (_hasNextPage ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == _allUsers.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.all(20.0),
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return _buildUserCard(_allUsers[index]);
+                            },
+                          ),
                   ),
+                  if (_isFilterVisible) ...[
+                    const SizedBox(width: 30),
+                    SizedBox(
+                      width: 300,
+                      child: SingleChildScrollView(child: _buildFilterCard()),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ],
         ),
@@ -195,7 +214,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
           TextField(
             onChanged: (val) {
               _searchQuery = val;
-              _applyFilters();
+              _onFilterChanged();
             },
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
@@ -240,7 +259,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             activeColor: AdminColors.accentBlue,
             onChanged: (val) {
               setState(() => _ageRange = val);
-              _applyFilters();
+              _onFilterChanged();
             },
           ),
           const SizedBox(height: 20),
@@ -255,7 +274,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             activeColor: AdminColors.accentBlue,
             onChanged: (val) {
               setState(() => _yearRange = val);
-              _applyFilters();
+              _onFilterChanged();
             },
           ),
         ],
@@ -269,7 +288,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       decoration: BoxDecoration(
         color: AdminColors.card,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: ListTile(
         onTap: () => context.push('/admin/users/${user.id}', extra: user),
@@ -302,22 +320,13 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             color: AdminColors.sidebar,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: DropdownButton<String>(
-            value: user.role,
-            dropdownColor: AdminColors.card,
-            underline: const SizedBox(),
+          child: Text(
+            user.role.toUpperCase(),
             style: const TextStyle(
               color: AdminColors.accentBlue,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontSize: 10,
             ),
-            items: const [
-              DropdownMenuItem(value: 'user', child: Text('ПОКУПАТЕЛЬ')),
-              DropdownMenuItem(value: 'admin', child: Text('АДМИН')),
-              DropdownMenuItem(value: 'collector', child: Text('СБОРЩИК')),
-              DropdownMenuItem(value: 'courier', child: Text('КУРЬЕР')),
-            ],
-            onChanged: (val) => _changeRole(user, val!),
           ),
         ),
       ),
@@ -356,7 +365,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       onSelected: (val) {
         if (val) {
           setState(() => _selectedRole = value);
-          _applyFilters();
+          _onFilterChanged();
         }
       },
       selectedColor: AdminColors.accentBlue,

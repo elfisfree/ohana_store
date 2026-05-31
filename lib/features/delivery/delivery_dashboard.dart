@@ -4,8 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ohana_store/core/utils/app_notifications.dart';
 import 'package:ohana_store/main.dart';
-// ignore: unused_import
-import 'package:ohana_store/models/order.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DeliveryDashboard extends StatefulWidget {
@@ -32,6 +30,13 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         .order('created_at', ascending: true);
 
     return response as List<dynamic>;
+  }
+
+  // --- МЕТОД ДЛЯ ОБНОВЛЕНИЯ ДАННЫХ ---
+  void _refreshOrders() {
+    setState(() {
+      _deliveryOrders = _fetchDeliveryOrders();
+    });
   }
 
   Future<void> _makeCall(String? phone) async {
@@ -64,8 +69,14 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         foregroundColor: Colors.white,
         elevation: 4,
         actions: [
+          // КНОПКА ОБНОВЛЕНИЯ
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Обновить список',
+            onPressed: _refreshOrders,
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
             onPressed: () => supabase.auth.signOut(),
           ),
         ],
@@ -74,7 +85,9 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         future: _deliveryOrders,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.orange),
+            );
           }
           if (snapshot.hasError) {
             return Center(child: Text('Ошибка: ${snapshot.error}'));
@@ -86,7 +99,11 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.check_circle, size: 80, color: Colors.grey[300]),
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 80,
+                    color: Colors.grey[300],
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'Все заказы доставлены!',
@@ -96,14 +113,23 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _refreshOrders,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade800,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('ПРОВЕРИТЬ НОВЫЕ'),
+                  ),
                 ],
               ),
             );
           }
 
           return RefreshIndicator(
-            onRefresh: () async =>
-                setState(() => _deliveryOrders = _fetchDeliveryOrders()),
+            onRefresh: () async => _refreshOrders(),
+            color: Colors.orange.shade800,
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: orders.length,
@@ -131,9 +157,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                         '/delivery/order/${o['id']}',
                       );
                       if (needRefresh == true && mounted) {
-                        setState(() {
-                          _deliveryOrders = _fetchDeliveryOrders();
-                        });
+                        _refreshOrders();
                       }
                     },
                     borderRadius: BorderRadius.circular(20),
@@ -278,11 +302,13 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                                         mode: LaunchMode.externalApplication,
                                       );
                                     } catch (e) {
-                                      AppNotifications.showError(
-                                        // ignore: use_build_context_synchronously
-                                        context,
-                                        'Не удалось открыть карту',
-                                      );
+                                      if (mounted) {
+                                        AppNotifications.showError(
+                                          // ignore: use_build_context_synchronously
+                                          context,
+                                          'Не удалось открыть карту',
+                                        );
+                                      }
                                     }
                                   },
                                 ),
@@ -301,33 +327,36 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
       ),
     );
   }
-}
 
-Widget _buildPriorityBadge(DateTime shippedAt) {
-  final diff = DateTime.now().difference(shippedAt).inHours;
+  Widget _buildPriorityBadge(DateTime shippedAt) {
+    final diff = DateTime.now().difference(shippedAt).inHours;
+    Color color = Colors.green;
+    String text = 'СВЕЖИЙ';
 
-  Color color = Colors.green;
-  String text = 'СВЕЖИЙ';
+    if (diff >= 3) {
+      color = Colors.orange;
+      text = 'СРОЧНО';
+    }
+    if (diff >= 6) {
+      color = Colors.red;
+      text = 'ГОРЯЩИЙ';
+    }
 
-  if (diff >= 3) {
-    color = Colors.orange;
-    text = 'СРОЧНО';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
-  if (diff >= 6) {
-    color = Colors.red;
-    text = 'ГОРЯЩИЙ';
-  }
-
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(4),
-      border: Border.all(color: color.withValues(alpha: 0.3)),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
-    ),
-  );
 }

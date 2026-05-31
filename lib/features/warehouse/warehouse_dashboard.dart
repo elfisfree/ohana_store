@@ -31,6 +31,12 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
     return (response as List).map((o) => Order.fromJson(o)).toList();
   }
 
+  void _refreshOrders() {
+    setState(() {
+      _warehouseOrders = _fetchWarehouseOrders();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,6 +52,11 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
         elevation: 5,
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Обновить список',
+            onPressed: _refreshOrders,
+          ),
+          IconButton(
             icon: const Icon(Icons.logout_rounded),
             onPressed: () => supabase.auth.signOut(),
           ),
@@ -55,7 +66,9 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
         future: _warehouseOrders,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.blue),
+            );
           }
           if (snapshot.hasError) {
             return Center(child: Text('Ошибка сети: ${snapshot.error}'));
@@ -81,14 +94,18 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _refreshOrders,
+                    child: const Text('ПРОВЕРИТЬ НОВЫЕ'),
+                  ),
                 ],
               ),
             );
           }
 
           return RefreshIndicator(
-            onRefresh: () async =>
-                setState(() => _warehouseOrders = _fetchWarehouseOrders()),
+            onRefresh: () async => _refreshOrders(),
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: orders.length,
@@ -124,9 +141,7 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
                         '/warehouse/order/${order.id}',
                       );
                       if (result == true && mounted) {
-                        setState(() {
-                          _warehouseOrders = _fetchWarehouseOrders();
-                        });
+                        _refreshOrders();
                       }
                     },
                     child: Padding(

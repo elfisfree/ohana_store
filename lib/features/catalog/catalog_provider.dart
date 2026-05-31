@@ -12,6 +12,15 @@ class CatalogProvider extends ChangeNotifier {
   List<Product> _products = [];
   Timer? _debounce;
 
+  bool _isDisposed = false;
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) {
+      super.notifyListeners();
+    }
+  }
+
   double _maxPriceLimit = 100000.0;
   RangeValues _selectedPriceRange = const RangeValues(0, 100000);
   List<Brand> _brands = [];
@@ -194,6 +203,7 @@ class CatalogProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _debounce?.cancel();
     super.dispose();
   }
