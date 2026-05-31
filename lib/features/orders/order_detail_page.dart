@@ -123,7 +123,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           context,
           'Заказ отменен и товары вернулись на склад',
         );
-        // Возвращаемся в список (с сигналом об обновлении)
         Navigator.of(context).pop(true);
       }
     } catch (e) {
@@ -133,8 +132,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   void _showStaffCancelDialog() {
     final controller = TextEditingController();
-
-    // Определяем тему окна
     final bool useDark = widget.isAdmin;
     final Color dialogBg = useDark ? AdminColors.card : Colors.white;
     final Color textColor = useDark ? Colors.white : Colors.black;
@@ -174,7 +171,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           vertical: 10,
         ),
         actions: [
-          // Кнопка НАЗАД (теперь контрастная)
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
@@ -185,7 +181,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
             ),
           ),
-          // Кнопка ОТМЕНЫ (яркая и четкая)
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
@@ -434,7 +429,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       order.cancellationReason!,
                       isAnyStaff,
                     ),
-                  // Кнопки управления (Роли)
                   if (widget.isAdmin) _buildAdminControls(order.status),
                   if (widget.isCollector) _buildCollectorButtons(order.status),
                   if (widget.isCourier) _buildCourierButtons(order.status),
@@ -490,8 +484,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  // --- UI КОМПОНЕНТЫ ---
-
   Widget _buildOrderCard(
     Order order,
     bool dark,
@@ -499,7 +491,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     Color sub,
     Color div,
   ) {
-    // Логика определения адреса
     String displayAddress = "";
     String deliveryLabel = "";
 
@@ -521,7 +512,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Используем 'text' и 'sub' вместо 't' и 's'
           _infoLine(
             'ЗАКАЗ',
             '#${order.id.substring(0, 8).toUpperCase()}',
@@ -664,7 +654,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
           const SizedBox(height: 10),
           TextButton(
-            onPressed: _showStaffCancelDialog, // Используем общий метод
+            onPressed: _showStaffCancelDialog,
             child: const Text(
               'ОТМЕНА',
               style: TextStyle(color: Colors.redAccent),
@@ -903,7 +893,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       margin: const EdgeInsets.only(top: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        // Используем красный оттенок, чтобы привлечь внимание
         color: Colors.redAccent.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),

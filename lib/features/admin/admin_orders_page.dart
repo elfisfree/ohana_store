@@ -77,7 +77,6 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
       await supabase.from('orders').update({'status': newStatus}).eq('id', id);
       if (mounted) {
         AppNotifications.showSuccess(context, 'Статус обновлен');
-        // ИСПРАВЛЕНИЕ 1: Используем блок {} вместо =>
         setState(() {
           _ordersFuture = _fetchOrders();
         });
@@ -119,7 +118,6 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                   ],
                 ),
                 ElevatedButton.icon(
-                  // ИСПРАВЛЕНИЕ 2: Используем блок {} вместо =>
                   onPressed: () {
                     setState(() {
                       _ordersFuture = _fetchOrders();
@@ -216,7 +214,6 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // --- МАЛЕНЬКИЙ ИНДИКАТОР ОПЛАТЫ ---
                   Icon(
                     order.paymentStatus == 'succeeded'
                         ? Icons.check_circle_rounded

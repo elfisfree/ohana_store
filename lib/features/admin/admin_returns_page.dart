@@ -39,14 +39,12 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
     }
   }
 
-  // --- МЕТОД ОБРАБОТКИ ВОЗВРАТА ---
   Future<void> _handleReturn(
     String requestId,
     String orderId,
     String newStatus,
   ) async {
     try {
-      // 1. Сначала выполняем асинхронные запросы к базе
       await supabase
           .from('return_requests')
           .update({'status': newStatus})
@@ -63,9 +61,6 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
           context,
           newStatus == 'approved' ? 'Возврат одобрен' : 'Заявка отклонена',
         );
-
-        // 2. И только ПОТОМ обновляем переменную Future внутри setState
-        // ОБЯЗАТЕЛЬНО ИСПОЛЬЗУЕМ ФИГУРНЫЕ СКОБКИ {}
         setState(() {
           _returnsFuture = _fetchReturns();
         });
@@ -75,7 +70,6 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
     }
   }
 
-  // --- НОВОЕ: МОДАЛЬНОЕ ОКНО С ДЕТАЛЯМИ ---
   void _showReturnDetails(dynamic r) {
     final f = NumberFormat.currency(
       locale: 'ru_RU',
@@ -113,8 +107,6 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                 ],
               ),
               const SizedBox(height: 20),
-
-              // Инфо о клиенте
               _dialogRow('Клиент:', r['customer_name']),
               _dialogRow('Сумма возврата:', f.format(r['order_amount'])),
               _dialogRow(
@@ -153,8 +145,6 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
               ),
 
               const SizedBox(height: 30),
-
-              // Кнопки управления
               Row(
                 children: [
                   Expanded(
@@ -297,7 +287,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
 
                     return SingleChildScrollView(
                       child: DataTable(
-                        showCheckboxColumn: false, // Убираем чекбоксы
+                        showCheckboxColumn: false,
                         headingTextStyle: const TextStyle(
                           color: AdminColors.accentBlue,
                           fontWeight: FontWeight.w900,
@@ -316,7 +306,6 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                         rows: returns
                             .map(
                               (r) => DataRow(
-                                // --- КЛИК ПО СТРОКЕ ОТКРЫВАЕТ ДЕТАЛИ ---
                                 onSelectChanged: (_) => _showReturnDetails(r),
                                 cells: [
                                   DataCell(

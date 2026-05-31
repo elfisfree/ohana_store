@@ -1,5 +1,5 @@
 // lib/features/admin/promocode_report_page.dart
-import 'package:fl_chart/fl_chart.dart'; // <-- 1. Импорт для графиков
+import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:ohana_store/core/admin_theme.dart';
@@ -87,20 +87,16 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- ВЕРХНИЙ РЯД: СТАТИСТИКА И ГРАФИК ---
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildStatHeader(totalUsages),
                     const SizedBox(width: 30),
-                    // График занимает все оставшееся место
                     Expanded(child: _buildChartCard(usages)),
                   ],
                 ),
 
                 const SizedBox(height: 40),
-
-                // --- НИЗ: ТАБЛИЦА ЛОГОВ ---
                 _buildUsageTable(usages),
               ],
             ),
@@ -113,7 +109,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
   Widget _buildStatHeader(int total) {
     return Container(
       width: 300,
-      height: 250, // Фиксированная высота для выравнивания с графиком
+      height: 250,
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
         color: AdminColors.card,
@@ -164,7 +160,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
     );
   }
 
-  // --- НОВЫЙ ВИДЖЕТ ГРАФИКА ---
+  //график
   Widget _buildChartCard(List<PromocodeUsage> usages) {
     return Container(
       height: 250,
@@ -201,9 +197,8 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
     );
   }
 
-  // Логика подготовки данных для графика
+  // данные для графика
   LineChartData _getChartData(List<PromocodeUsage> usages) {
-    // Группируем использования по датам (только последние 7 дней)
     final Map<String, int> dailyCounts = {};
     final now = DateTime.now();
 
@@ -338,6 +333,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
     );
   }
 
+  //------------------конец графика
   Widget _tableHeader(String text) => Padding(
     padding: const EdgeInsets.all(15),
     child: Text(

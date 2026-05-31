@@ -35,12 +35,10 @@ class _LoginPageState extends State<LoginPage> {
       );
     } on AuthException catch (error) {
       if (mounted) {
-        // --- ИСПОЛЬЗУЕМ НОВОЕ УВЕДОМЛЕНИЕ ---
         AppNotifications.showError(context, error.message);
       }
     } catch (error) {
       if (mounted) {
-        // --- ИСПОЛЬЗУЕМ НОВОЕ УВЕДОМЛЕНИЕ ---
         AppNotifications.showError(context, 'Произошла непредвиденная ошибка');
       }
     }

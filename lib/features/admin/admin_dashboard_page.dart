@@ -75,7 +75,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             return ListView(
               padding: const EdgeInsets.all(30),
               children: [
-                // --- ШАПКА И КНОПКА ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -117,7 +116,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // --- ЛЕВАЯ КОЛОНКА (ОСНОВНЫЕ КАРТОЧКИ) ---
                     Expanded(
                       flex: 3,
                       child: Column(
@@ -182,8 +180,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     ),
 
                     const SizedBox(width: 30),
-
-                    // --- ПРАВАЯ КОЛОНКА (ОБЗОР МАГАЗИНА) ---
                     Expanded(flex: 1, child: _buildShopOverview(s)),
                   ],
                 ),

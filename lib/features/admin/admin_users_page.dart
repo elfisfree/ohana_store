@@ -3,7 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ohana_store/core/admin_theme.dart'; // Используем AdminColors
+import 'package:ohana_store/core/admin_theme.dart';
 import 'package:ohana_store/main.dart';
 import 'package:ohana_store/models/admin_user_model.dart';
 
@@ -19,13 +19,12 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   List<AdminUser> _filteredUsers = [];
   bool _isLoading = true;
   String _searchQuery = '';
-  bool _isFilterVisible =
-      true; // По умолчанию на десктопе лучше держать открытыми
+  bool _isFilterVisible = true;
 
   String _selectedRole = 'all';
   RangeValues _ageRange = const RangeValues(0, 100);
 
-  final double _minYear = 2024; // Исправил на 2024 для реалистичности
+  final double _minYear = 2024;
   final double _maxYear = DateTime.now().year.toDouble();
   late RangeValues _yearRange;
 
@@ -106,7 +105,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- ЗАГОЛОВОК И СЧЕТЧИК ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -149,7 +147,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- ЛЕВАЯ КОЛОНКА: СПИСОК ---
                 Expanded(
                   flex: 2,
                   child: _isLoading
@@ -161,8 +158,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                               _buildUserCard(_filteredUsers[index]),
                         ),
                 ),
-
-                // --- ПРАВАЯ КОЛОНКА: ФИЛЬТРЫ ---
                 if (_isFilterVisible) ...[
                   const SizedBox(width: 30),
                   SizedBox(
@@ -319,10 +314,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             items: const [
               DropdownMenuItem(value: 'user', child: Text('ПОКУПАТЕЛЬ')),
               DropdownMenuItem(value: 'admin', child: Text('АДМИН')),
-              DropdownMenuItem(
-                value: 'collector',
-                child: Text('СБОРЩИК'),
-              ), // <-- Новое
+              DropdownMenuItem(value: 'collector', child: Text('СБОРЩИК')),
               DropdownMenuItem(value: 'courier', child: Text('КУРЬЕР')),
             ],
             onChanged: (val) => _changeRole(user, val!),

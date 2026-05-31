@@ -110,7 +110,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     setState(() => _isAddingToCart = true);
     try {
-      // --- ПРОВЕРКА НАЛИЧИЯ ПЕРЕД ДОБАВЛЕНИЕМ ---
       final stockCheck = await supabase
           .from('product_stock')
           .select('quantity')
@@ -125,11 +124,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         );
         setState(() {
           _isAddingToCart = false;
-          _dataFuture = _fetchProductData(); // Обновляем данные на странице
+          _dataFuture = _fetchProductData();
         });
         return;
       }
-      // ------------------------------------------
 
       final userId = supabase.auth.currentUser!.id;
 
@@ -382,13 +380,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           final bool isOutOfStock = stockItem.quantity <= 0;
 
                           return ChoiceChip(
-                            // --- ГЛАВНОЕ ИЗМЕНЕНИЕ: Кастомный Label ---
                             label: Container(
                               padding: const EdgeInsets.symmetric(vertical: 4),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // Верхняя строка: Номер размера
                                   Text(
                                     stockItem.size.toString().replaceAll(
                                       '.0',
@@ -404,7 +400,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                       fontWeight: FontWeight.w900,
                                     ),
                                   ),
-                                  // Нижняя строка: Количество
                                   Text(
                                     isOutOfStock
                                         ? 'НЕТ'
@@ -422,7 +417,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                 ],
                               ),
                             ),
-                            // ------------------------------------------
                             selected: isSelected,
                             onSelected: isOutOfStock
                                 ? null
@@ -437,9 +431,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             selectedColor: Colors.black,
                             backgroundColor: Colors.white,
                             disabledColor: Colors.grey.shade100,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                            ), // Увеличим отступы внутри чипа
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                               side: BorderSide(

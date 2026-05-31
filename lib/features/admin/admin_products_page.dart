@@ -140,8 +140,6 @@ class AdminProductsPage extends StatelessWidget {
       symbol: '₽',
       decimalDigits: 0,
     );
-
-    // Берем превью из первого цвета
     String? previewUrl;
     if (product.variants.isNotEmpty &&
         product.variants.first.imageUrls.isNotEmpty) {
@@ -164,9 +162,8 @@ class AdminProductsPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. ФОТО (СВЕРХУ)
           AspectRatio(
-            aspectRatio: 1.2, // Красивое соотношение для фото
+            aspectRatio: 1.2,
             child: Stack(
               children: [
                 ClipRRect(
@@ -188,7 +185,6 @@ class AdminProductsPage extends StatelessWidget {
                           ),
                         ),
                 ),
-                // Кнопка удаления в углу фото
                 Positioned(
                   top: 12,
                   right: 12,
@@ -208,8 +204,6 @@ class AdminProductsPage extends StatelessWidget {
               ],
             ),
           ),
-
-          // 2. ИНФОРМАЦИОННЫЙ БЛОК
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(15.0),
@@ -252,7 +246,6 @@ class AdminProductsPage extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.only(right: 4),
                       child: SingleChildScrollView(
-                        // Важно: ставим primary: false, чтобы не конфликтовать с главным скроллом страницы
                         primary: false,
                         child: product.variants.isEmpty
                             ? const Text(

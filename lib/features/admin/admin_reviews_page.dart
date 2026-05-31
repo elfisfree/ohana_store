@@ -1,8 +1,10 @@
 // lib/features/admin/admin_reviews_page.dart
+// ignore_for_file: unused_local_variable
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:ohana_store/core/admin_theme.dart'; // Используем AdminColors
+import 'package:ohana_store/core/admin_theme.dart';
 import 'package:ohana_store/core/utils/app_notifications.dart';
 import 'package:ohana_store/main.dart';
 import 'package:ohana_store/models/admin_review.dart';
@@ -64,13 +66,12 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent, // Фон через DesktopShell
+      backgroundColor: Colors.transparent,
       body: Padding(
         padding: const EdgeInsets.all(30.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ЗАГОЛОВОК
             const Text(
               'МОДЕРАЦИЯ КОНТЕНТА',
               style: TextStyle(
@@ -86,8 +87,6 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
               style: TextStyle(color: Colors.white38, fontSize: 14),
             ),
             const SizedBox(height: 30),
-
-            // СПИСОК
             Expanded(
               child: FutureBuilder<List<AdminReview>>(
                 future: _reviewsFuture,
@@ -136,7 +135,6 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                     itemCount: reviews.length,
                     itemBuilder: (context, index) {
                       final review = reviews[index];
-                      // ignore: unused_local_variable
                       final f = NumberFormat.currency(
                         locale: 'ru_RU',
                         symbol: '₽',
@@ -154,7 +152,6 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                         ),
                         child: Column(
                           children: [
-                            // ШАПКА КАРТОЧКИ
                             ListTile(
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20,
@@ -203,8 +200,6 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                               ),
                             ),
                             const Divider(height: 1, color: Colors.white10),
-
-                            // ТЕЛО КАРТОЧКИ
                             Padding(
                               padding: const EdgeInsets.all(20),
                               child: Column(
@@ -235,8 +230,6 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                                     ],
                                   ),
                                   const SizedBox(height: 20),
-
-                                  // ТЕКСТ ОТЗЫВА
                                   Container(
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(16),
@@ -267,8 +260,6 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                                   ),
 
                                   const SizedBox(height: 25),
-
-                                  // КНОПКИ ДЕЙСТВИЙ
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [

@@ -46,13 +46,13 @@ class _SplashScreenState extends State<SplashScreen> {
           context.go('/admin');
           break;
         case 'collector':
-          context.go('/warehouse'); // Отправляем на склад
+          context.go('/warehouse');
           break;
         case 'courier':
-          context.go('/delivery'); // Отправляем в доставку
+          context.go('/delivery');
           break;
         default:
-          context.go('/home'); // Покупатели идут в каталог
+          context.go('/home');
       }
     } catch (e) {
       print('Ошибка при загрузке профиля на SplashScreen: $e');

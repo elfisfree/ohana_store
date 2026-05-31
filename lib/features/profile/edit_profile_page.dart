@@ -3,7 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart'; // Для форматирования даты
+import 'package:intl/intl.dart';
 import 'package:ohana_store/core/utils/app_notifications.dart';
 import 'package:ohana_store/features/profile/profile_provider.dart';
 import 'package:ohana_store/main.dart';
@@ -206,7 +206,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       fontWeight: FontWeight.w600,
                     ),
                     keyboardType: TextInputType.phone,
-                    inputFormatters: [_phoneFormatter], // Применяем маску
+                    inputFormatters: [_phoneFormatter],
                     decoration: InputDecoration(
                       labelText: 'ТЕЛЕФОН',
                       hintText: '+7 (___) ___-__-__',

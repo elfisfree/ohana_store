@@ -22,13 +22,11 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
   }
 
   Future<List<Order>> _fetchWarehouseOrders() async {
-    // Сборщик видит заказы, которые нужно начать собирать (pending)
-    // или которые уже собираются (processing)
     final response = await supabase
         .from('orders')
         .select()
         .inFilter('status', ['pending', 'processing'])
-        .order('created_at', ascending: true); // Самые старые — вверху
+        .order('created_at', ascending: true);
 
     return (response as List).map((o) => Order.fromJson(o)).toList();
   }
@@ -97,8 +95,6 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
               itemBuilder: (context, index) {
                 final order = orders[index];
                 final bool isProcessing = order.status == 'processing';
-
-                // Форматирование даты
                 final String formattedDate = DateFormat(
                   'dd.MM.yyyy, HH:mm',
                 ).format(order.createdAt.toLocal());
@@ -124,11 +120,9 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(15),
                     onTap: () async {
-                      // Ждем возврата со страницы деталей
                       final bool? result = await context.push<bool>(
                         '/warehouse/order/${order.id}',
                       );
-                      // Если статус изменился — обновляем список
                       if (result == true && mounted) {
                         setState(() {
                           _warehouseOrders = _fetchWarehouseOrders();
@@ -139,7 +133,6 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          // Иконка состояния
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -158,8 +151,6 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
                             ),
                           ),
                           const SizedBox(width: 16),
-
-                          // Инфо заказа
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,8 +173,6 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
                               ],
                             ),
                           ),
-
-                          // Бейдж статуса
                           _buildStatusBadge(order.status),
                         ],
                       ),

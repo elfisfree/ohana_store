@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:ohana_store/core/admin_theme.dart'; // Используем AdminColors
+import 'package:ohana_store/core/admin_theme.dart';
 import 'package:ohana_store/main.dart';
 import 'package:ohana_store/models/admin_user_model.dart';
 import 'package:ohana_store/models/order.dart';
@@ -93,8 +93,6 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
 
           final user = snapshot.data!.$1;
           final orders = snapshot.data!.$2;
-
-          // Расчет статистики
           final double totalSpent = orders.fold(
             0,
             (sum, o) => sum + o.finalPrice,
@@ -106,14 +104,11 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- ВЕРХНИЙ БЛОК: ПРОФИЛЬ И СТАТИСТИКА ---
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Основная инфо профиля
                     _buildProfileMainCard(user),
                     const SizedBox(width: 30),
-                    // Статистика в ряд
                     Expanded(
                       child: Column(
                         children: [
@@ -143,8 +138,6 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
                 ),
 
                 const SizedBox(height: 40),
-
-                // --- НИЖНИЙ БЛОК: ТАБЛИЦА ЗАКАЗОВ ---
                 const Text(
                   'ИСТОРИЯ ПОКУПОК',
                   style: TextStyle(

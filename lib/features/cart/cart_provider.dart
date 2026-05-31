@@ -5,13 +5,11 @@ import 'package:ohana_store/models/cart_item.dart';
 import 'dart:async';
 
 class CartProvider extends ChangeNotifier {
-  // 1. ОБЪЯВЛЯЕМ СПИСОК (то чего не хватало)
   List<CartItem> _items = [];
   final Set<String> _selectedItemIds = {};
   bool _isLoading = true;
   String? _error;
 
-  // Геттеры для UI
   List<CartItem> get items => _items;
   Set<String> get selectedItemIds => _selectedItemIds;
   bool get isLoading => _isLoading;
@@ -20,8 +18,6 @@ class CartProvider extends ChangeNotifier {
   CartProvider() {
     fetchCartItems();
   }
-
-  // Расчет итоговой суммы
   double get selectedItemsTotalPrice {
     double total = 0.0;
     for (var item in _items) {
@@ -32,7 +28,6 @@ class CartProvider extends ChangeNotifier {
     return total;
   }
 
-  // Загрузка корзины из Supabase
   Future<void> fetchCartItems() async {
     _isLoading = true;
     notifyListeners();
@@ -45,8 +40,6 @@ class CartProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
-
-      // Загружаем связанные данные: товар, бренд и вариант цвета (для фото)
       final response = await supabase
           .from('cart_items')
           .select(
@@ -67,15 +60,12 @@ class CartProvider extends ChangeNotifier {
     }
   }
 
-  // --- МЕТОД ОБНОВЛЕНИЯ КОЛИЧЕСТВА ---
   Future<void> updateQuantity(String cartItemId, int newQuantity) async {
     if (newQuantity < 1) return;
 
     try {
-      // 1. Находим товар в локальном списке
       final index = _items.indexWhere((item) => item.id == cartItemId);
       if (index != -1) {
-        // Создаем новый объект с измененным количеством
         final oldItem = _items[index];
         _items[index] = CartItem(
           id: oldItem.id,
@@ -84,17 +74,15 @@ class CartProvider extends ChangeNotifier {
           product: oldItem.product,
           variant: oldItem.variant,
         );
-        notifyListeners(); // Мгновенно обновляем UI
+        notifyListeners();
       }
-
-      // 2. Отправляем обновление в базу
       await supabase
           .from('cart_items')
           .update({'quantity': newQuantity})
           .eq('id', cartItemId);
     } catch (e) {
       print('Ошибка обновления количества: $e');
-      fetchCartItems(); // В случае ошибки перекачиваем данные из базы
+      fetchCartItems();
     }
   }
 

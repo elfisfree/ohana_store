@@ -25,9 +25,7 @@ class AppNotifications {
     Color color,
     IconData icon,
   ) {
-    ScaffoldMessenger.of(
-      context,
-    ).hideCurrentSnackBar(); // Убираем предыдущее, если есть
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -48,8 +46,8 @@ class AppNotifications {
           ],
         ),
         backgroundColor: color,
-        behavior: SnackBarBehavior.floating, // Делаем "парящим"
-        margin: const EdgeInsets.all(20), // Отступы от краев экрана
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         duration: const Duration(seconds: 3),
         elevation: 6,

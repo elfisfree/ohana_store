@@ -4,8 +4,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-
-// Админка
 import 'package:ohana_store/features/admin/admin_dashboard_page.dart';
 import 'package:ohana_store/features/admin/admin_orders_page.dart';
 import 'package:ohana_store/features/admin/admin_products_page.dart';
@@ -17,18 +15,12 @@ import 'package:ohana_store/features/admin/promocode_report_page.dart';
 import 'package:ohana_store/features/admin/admin_users_page.dart';
 import 'package:ohana_store/features/admin/admin_user_detail_page.dart';
 import 'package:ohana_store/features/admin/admin_desktop_shell.dart';
-
-// Склад и Доставка (Новое)
 import 'package:ohana_store/features/warehouse/warehouse_dashboard.dart';
 import 'package:ohana_store/features/delivery/delivery_dashboard.dart';
-
-// Аутентификация
 import 'package:ohana_store/features/auth/screens/login_page.dart';
 import 'package:ohana_store/features/auth/screens/register_page.dart';
 import 'package:ohana_store/features/auth/screens/splash_screen.dart';
 import 'package:ohana_store/features/auth/auth_notifier.dart';
-
-// Покупатель
 import 'package:ohana_store/features/cart/cart_page.dart';
 import 'package:ohana_store/features/catalog/catalog_page.dart';
 import 'package:ohana_store/features/catalog/catalog_provider.dart';
@@ -42,7 +34,6 @@ import 'package:ohana_store/features/orders/order_detail_page.dart';
 import 'package:ohana_store/features/profile/edit_profile_page.dart';
 import 'package:ohana_store/features/profile/profile_page.dart';
 import 'package:ohana_store/features/profile/user_addresses_page.dart';
-
 import 'package:ohana_store/main.dart';
 import 'package:ohana_store/models/admin_user_model.dart';
 import 'package:ohana_store/models/product.dart';

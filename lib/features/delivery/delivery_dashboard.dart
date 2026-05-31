@@ -6,7 +6,7 @@ import 'package:ohana_store/core/utils/app_notifications.dart';
 import 'package:ohana_store/main.dart';
 // ignore: unused_import
 import 'package:ohana_store/models/order.dart';
-import 'package:url_launcher/url_launcher.dart'; // Пакет для звонков и карт
+import 'package:url_launcher/url_launcher.dart';
 
 class DeliveryDashboard extends StatefulWidget {
   const DeliveryDashboard({super.key});
@@ -25,7 +25,6 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
   }
 
   Future<List<dynamic>> _fetchDeliveryOrders() async {
-    // Используем наше новое вью, чтобы видеть телефон клиента
     final response = await supabase
         .from('delivery_orders_view')
         .select()
@@ -35,7 +34,6 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
     return response as List<dynamic>;
   }
 
-  // Метод для звонка клиенту
   Future<void> _makeCall(String? phone) async {
     if (phone == null || phone.isEmpty) return;
     final Uri url = Uri.parse(
@@ -129,12 +127,9 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                   ),
                   child: InkWell(
                     onTap: () async {
-                      // Ждем результата закрытия страницы деталей
                       final bool? needRefresh = await context.push<bool>(
                         '/delivery/order/${o['id']}',
                       );
-
-                      // Если вернулись с результатом 'true' — обновляем список
                       if (needRefresh == true && mounted) {
                         setState(() {
                           _deliveryOrders = _fetchDeliveryOrders();
@@ -189,15 +184,12 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                                     ),
                                   ),
                                   const Spacer(),
-                                  // Показываем "Срочность" (опционально)
                                   _buildPriorityBadge(
                                     DateTime.parse(o['shipped_at']),
                                   ),
                                 ],
                               ),
                             ),
-
-                          // --- КЛИЕНТ ---
                           Row(
                             children: [
                               const Icon(
@@ -216,8 +208,6 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                             ],
                           ),
                           const SizedBox(height: 10),
-
-                          // --- АДРЕС (КРУПНО) ---
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -240,8 +230,6 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                             ],
                           ),
                           const SizedBox(height: 20),
-
-                          // --- БЫСТРЫЕ ДЕЙСТВИЯ ---
                           Row(
                             children: [
                               Expanded(
@@ -271,7 +259,6 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                                     color: Colors.blue,
                                   ),
                                   onPressed: () async {
-                                    // Открываем карты с адресом
                                     final String address =
                                         o['shipping_address'] ?? '';
                                     if (address.isEmpty ||
@@ -281,20 +268,16 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
 
                                     final String encodedAddress =
                                         Uri.encodeComponent(address);
-
-                                    // Самая надежная ссылка для РФ (открывает приложение Яндекс.Карт или браузер)
                                     final Uri url = Uri.parse(
                                       "https://yandex.ru/maps/?text=$encodedAddress",
                                     );
 
                                     try {
-                                      // Мы сразу вызываем запуск в режиме внешней программы
                                       await launchUrl(
                                         url,
                                         mode: LaunchMode.externalApplication,
                                       );
                                     } catch (e) {
-                                      // Если на телефоне вообще нет карт и браузера (что невозможно), покажем ошибку
                                       AppNotifications.showError(
                                         // ignore: use_build_context_synchronously
                                         context,

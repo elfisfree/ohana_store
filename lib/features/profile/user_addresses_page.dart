@@ -57,12 +57,9 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
         });
 
         AppNotifications.showSuccess(context, 'Адрес успешно сохранен');
-
-        // --- ГЛАВНОЕ ИСПРАВЛЕНИЕ: Используем { } вместо => ---
         setState(() {
           _addressesFuture = _fetchAddresses();
         });
-        // ---------------------------------------------------
       } catch (e) {
         AppNotifications.showError(context, 'Не удалось добавить адрес');
       }
@@ -75,12 +72,9 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
 
       if (mounted) {
         AppNotifications.showSuccess(context, 'Адрес удален');
-
-        // --- ГЛАВНОЕ ИСПРАВЛЕНИЕ: Используем { } вместо => ---
         setState(() {
           _addressesFuture = _fetchAddresses();
         });
-        // ---------------------------------------------------
       }
     } catch (e) {
       if (mounted) {
@@ -233,7 +227,6 @@ class __AddAddressDialogState extends State<_AddAddressDialog> {
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          // Чтобы не вылетало на маленьких окнах
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -258,10 +251,7 @@ class __AddAddressDialogState extends State<_AddAddressDialog> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Expanded(
-                    flex: 1,
-                    child: _buildField(_floorController, 'Эт'),
-                  ), // Поле этажа
+                  Expanded(flex: 1, child: _buildField(_floorController, 'Эт')),
                   const SizedBox(width: 8),
                   Expanded(
                     flex: 2,

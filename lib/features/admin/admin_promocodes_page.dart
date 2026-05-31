@@ -27,7 +27,7 @@ class _AdminPromocodesPageState extends State<AdminPromocodesPage> {
     try {
       final response = await supabase
           .from('promocodes')
-          .select('*, product_types(*)') // Сразу тянем типы для полноты
+          .select('*, product_types(*)')
           .order('created_at', ascending: false);
       return response.map((p) => Promocode.fromJson(p)).toList();
     } catch (e) {
@@ -79,13 +79,12 @@ class _AdminPromocodesPageState extends State<AdminPromocodesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent, // Фон через DesktopShell
+      backgroundColor: Colors.transparent,
       body: Padding(
         padding: const EdgeInsets.all(30.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ШАПКА
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -117,8 +116,6 @@ class _AdminPromocodesPageState extends State<AdminPromocodesPage> {
               ],
             ),
             const SizedBox(height: 30),
-
-            // ТАБЛИЦА
             Expanded(
               child: Container(
                 width: double.infinity,
