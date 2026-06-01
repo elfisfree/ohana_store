@@ -138,7 +138,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               ),
                               _statCard(
                                 'ТОВАРЫ',
-                                '42',
+                                s.totalProducts.toString(),
                                 0.5,
                                 Colors.orangeAccent,
                                 Icons.inventory_2_outlined,
@@ -236,7 +236,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: progress,
+              value: 1,
               color: color,
               backgroundColor: Colors.white10,
               minHeight: 4,
@@ -272,7 +272,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 width: 150,
                 height: 150,
                 child: CircularProgressIndicator(
-                  value: 0.7,
+                  value: 1,
                   strokeWidth: 15,
                   color: AdminColors.accentBlue,
                   backgroundColor: Colors.white10,
@@ -298,7 +298,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
           _overviewRow(
             'Товары в наличии',
-            '42',
+            s.totalProducts.toString(),
             Icons.inventory,
             Colors.orangeAccent,
           ),

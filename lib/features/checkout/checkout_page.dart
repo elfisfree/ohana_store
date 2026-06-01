@@ -91,39 +91,46 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (response['error'] != null) {
         throw Exception(response['error']);
       }
+      final allowedTypeIds = List<String>.from(
+        response['applicable_product_type_ids'] ?? [],
+      );
+      if (allowedTypeIds.isNotEmpty) {
+        bool hasMatchingProduct = _selectedItems.any(
+          (item) => allowedTypeIds.contains(item.product.productType?.id),
+        );
+
+        if (!hasMatchingProduct) {
+          throw Exception(
+            'Данный промокод не действует на выбранные категории товаров',
+          );
+        }
+      }
       setState(() {
         _appliedPromocode = AppliedPromocode(
           id: response['id'],
           discountPercentage: (response['discount_percentage'] as num)
               .toDouble(),
-          applicableProductTypeIds: List<String>.from(
-            response['applicable_product_type_ids'] ?? [],
-          ),
+          applicableProductTypeIds: allowedTypeIds,
         );
         _calculateTotals();
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Промокод применен!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        AppNotifications.showSuccess(context, 'Промокод успешно применен!');
+      }
     } catch (e) {
       setState(() {
         _appliedPromocode = null;
         _calculateTotals();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Ошибка: ${e.toString().replaceFirst("Exception: ", "")}',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        AppNotifications.showError(
+          context,
+          e.toString().replaceFirst("Exception: ", ""),
+        );
+      }
     } finally {
-      setState(() => _isPromocodeLoading = false);
+      if (mounted) setState(() => _isPromocodeLoading = false);
     }
   }
 

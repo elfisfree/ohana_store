@@ -283,12 +283,6 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
                             ),
                             const SizedBox(height: 20),
                             _adminField(
-                              _usageLimitController,
-                              'Лимит использований (раз)',
-                              isNumber: true,
-                            ),
-                            const SizedBox(height: 20),
-                            _adminField(
                               _validToController,
                               'Срок действия до',
                               readOnly: true,

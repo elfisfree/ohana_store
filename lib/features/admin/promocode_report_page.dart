@@ -89,11 +89,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildStatHeader(totalUsages),
-                    const SizedBox(width: 30),
-                    Expanded(child: _buildChartCard(usages)),
-                  ],
+                  children: [_buildStatHeader(totalUsages)],
                 ),
 
                 const SizedBox(height: 40),
@@ -157,109 +153,6 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
           ),
         ],
       ),
-    );
-  }
-
-  //график
-  Widget _buildChartCard(List<PromocodeUsage> usages) {
-    return Container(
-      height: 250,
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        color: AdminColors.card,
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'ДИНАМИКА ИСПОЛЬЗОВАНИЯ (ПОСЛЕДНИЕ 7 ДНЕЙ)',
-            style: TextStyle(
-              color: AdminColors.accentBlue,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 25),
-          Expanded(
-            child: usages.isEmpty
-                ? const Center(
-                    child: Text(
-                      'Нет данных для графика',
-                      style: TextStyle(color: Colors.white24),
-                    ),
-                  )
-                : LineChart(_getChartData(usages)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // данные для графика
-  LineChartData _getChartData(List<PromocodeUsage> usages) {
-    final Map<String, int> dailyCounts = {};
-    final now = DateTime.now();
-
-    for (int i = 6; i >= 0; i--) {
-      final date = now.subtract(Duration(days: i));
-      final dateStr = DateFormat('dd.MM').format(date);
-      dailyCounts[dateStr] = 0;
-    }
-
-    for (var usage in usages) {
-      final dateStr = DateFormat('dd.MM').format(usage.usedAt.toLocal());
-      if (dailyCounts.containsKey(dateStr)) {
-        dailyCounts[dateStr] = (dailyCounts[dateStr] ?? 0) + 1;
-      }
-    }
-
-    final List<FlSpot> spots = [];
-    int index = 0;
-    dailyCounts.forEach((key, value) {
-      spots.add(FlSpot(index.toDouble(), value.toDouble()));
-      index++;
-    });
-
-    return LineChartData(
-      gridData: const FlGridData(show: false),
-      titlesData: FlTitlesData(
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: const AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (value, meta) {
-              final keys = dailyCounts.keys.toList();
-              if (value.toInt() >= 0 && value.toInt() < keys.length) {
-                return Text(
-                  keys[value.toInt()],
-                  style: const TextStyle(color: Colors.white38, fontSize: 10),
-                );
-              }
-              return const SizedBox();
-            },
-          ),
-        ),
-      ),
-      borderData: FlBorderData(show: false),
-      lineBarsData: [
-        LineChartBarData(
-          spots: spots,
-          isCurved: true,
-          color: AdminColors.accentBlue,
-          barWidth: 4,
-          isStrokeCapRound: true,
-          dotData: const FlDotData(show: true),
-          belowBarData: BarAreaData(
-            show: true,
-            color: AdminColors.accentBlue.withValues(alpha: 0.1),
-          ),
-        ),
-      ],
     );
   }
 

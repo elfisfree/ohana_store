@@ -69,7 +69,12 @@ class _AdminPromocodesPageState extends State<AdminPromocodesPage> {
       try {
         await supabase.from('promocodes').delete().eq('id', promocodeId);
         AppNotifications.showSuccess(context, 'Промокод удален');
-        setState(() => _promocodesFuture = _fetchPromocodes());
+        if (mounted) {
+          AppNotifications.showSuccess(context, 'Промокод удален');
+          setState(() {
+            _promocodesFuture = _fetchPromocodes();
+          });
+        }
       } catch (e) {
         AppNotifications.showError(context, 'Ошибка удаления: $e');
       }
@@ -237,10 +242,39 @@ class _AdminPromocodesPageState extends State<AdminPromocodesPage> {
                                           _actionButton(
                                             Icons.edit_note_rounded,
                                             Colors.orange,
-                                            () => context.push(
-                                              '/admin/promocodes/edit/${p.id}',
-                                              extra: p,
-                                            ),
+                                            () async {
+                                              try {
+                                                final response = await supabase
+                                                    .from('promocodes')
+                                                    .select(
+                                                      '*, product_types(*)',
+                                                    )
+                                                    .eq('id', p.id)
+                                                    .maybeSingle();
+
+                                                if (response == null) {
+                                                  AppNotifications.showError(
+                                                    context,
+                                                    'Промокод не найден в базе',
+                                                  );
+                                                  return;
+                                                }
+
+                                                final fullPromo =
+                                                    Promocode.fromJson(
+                                                      response,
+                                                    );
+                                                context.push(
+                                                  '/admin/promocodes/edit/${p.id}',
+                                                  extra: fullPromo,
+                                                );
+                                              } catch (e) {
+                                                AppNotifications.showError(
+                                                  context,
+                                                  'Ошибка загрузки данных: $e',
+                                                );
+                                              }
+                                            },
                                           ),
                                           const SizedBox(width: 8),
                                           _actionButton(

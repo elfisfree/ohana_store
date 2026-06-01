@@ -5,6 +5,7 @@ class AdminStats {
   final int pendingOrders;
   final double avgCheck;
   final double revenueToday;
+  final int totalProducts;
 
   AdminStats({
     required this.totalOrders,
@@ -13,6 +14,7 @@ class AdminStats {
     required this.pendingOrders,
     required this.avgCheck,
     required this.revenueToday,
+    required this.totalProducts,
   });
 
   factory AdminStats.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class AdminStats {
       pendingOrders: json['pending_orders'] ?? 0,
       avgCheck: (json['avg_check'] as num).toDouble(),
       revenueToday: (json['revenue_today'] as num).toDouble(),
+      totalProducts: json['total_products'] ?? 0,
     );
   }
 }

@@ -354,6 +354,14 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
       color = Colors.white24;
       text = 'ОТМЕНЕН';
     }
+    if (status == 'returned') {
+      color = Colors.white24;
+      text = 'ВОЗВРАТ';
+    }
+    if (status == 'return_requested') {
+      color = Colors.orangeAccent;
+      text = 'ВОЗВРАТ (ЗАЯВКА)';
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       decoration: BoxDecoration(
