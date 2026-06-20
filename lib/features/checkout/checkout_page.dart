@@ -1,8 +1,9 @@
 // lib/features/checkout/checkout_page.dart
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, unused_field, unused_element_parameter
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:ohana_store/core/services/connectivity_service.dart';
 import 'package:ohana_store/core/utils/app_notifications.dart';
 import 'package:ohana_store/features/checkout/mock_payment_page.dart';
 import 'package:ohana_store/main.dart';
@@ -212,7 +213,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Future<void> _showAddAddressDialog() async {
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (context) => const _AddAddressDialog(),
+      builder: (context) => const _AddressFormDialog(),
     );
 
     if (result != null && mounted) {
@@ -303,9 +304,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'p_promocode_id': _appliedPromocode?.id,
         },
       );
-      await context.read<CartProvider>().fetchCartItems();
+      if (mounted) {
+        final cartProvider = context.read<CartProvider>();
+        cartProvider.clearOrderedItems(widget.selectedCartItemIds.toList());
+        await cartProvider.fetchCartItems();
+      }
 
       if (!mounted) return;
+
       if (_paymentMethod == PaymentMethod.online) {
         // ignore: unused_local_variable
         final bool? paid = await Navigator.push<bool>(
@@ -317,6 +323,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
           ),
         );
+
         if (mounted) {
           context.go('/order-success/$newOrderId');
         }
@@ -377,50 +384,96 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       if (_deliveryMethod == DeliveryMethod.courier)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedAddressId,
-                            decoration: _inputDecoration(
-                              'Выберите адрес доставки',
-                            ),
-                            isExpanded: true,
-                            items: [
-                              ..._userAddresses.map(
-                                (addr) => DropdownMenuItem(
-                                  value: addr.id,
-                                  child: Text(
-                                    '${addr.name}: ${addr.fullAddress}',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Сама карточка выбора
+                              InkWell(
+                                onTap:
+                                    _showAddressPickerSheet, // Метод для открытия шторки
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: _selectedAddressId == null
+                                          ? Colors.red.withValues(alpha: 0.5)
+                                          : Colors.transparent,
+                                      width: 1,
                                     ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.location_on_outlined,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _selectedAddressId == null
+                                                  ? 'ВЫБРАТЬ АДРЕС'
+                                                  : _userAddresses
+                                                            .firstWhere(
+                                                              (a) =>
+                                                                  a.id ==
+                                                                  _selectedAddressId,
+                                                            )
+                                                            .name
+                                                            ?.toUpperCase() ??
+                                                        'АДРЕС',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 13,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                            if (_selectedAddressId != null)
+                                              Text(
+                                                _userAddresses
+                                                    .firstWhere(
+                                                      (a) =>
+                                                          a.id ==
+                                                          _selectedAddressId,
+                                                    )
+                                                    .fullAddress,
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade600,
+                                                  fontSize: 12,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.keyboard_arrow_right,
+                                        color: Colors.grey,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                              DropdownMenuItem(
-                                value: _addNewAddressValue,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.add_circle_outline,
-                                      color: Theme.of(context).primaryColor,
+                              // Маленькая подсказка об ошибке, если адрес не выбран
+                              if (_selectedAddressId == null)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 12, top: 4),
+                                  child: Text(
+                                    'Пожалуйста, выберите адрес доставки',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 11,
                                     ),
-                                    const SizedBox(width: 8),
-                                    const Text('Добавить новый адрес...'),
-                                  ],
+                                  ),
                                 ),
-                              ),
                             ],
-                            onChanged: (value) {
-                              if (value == _addNewAddressValue) {
-                                _showAddAddressDialog();
-                              } else {
-                                setState(() => _selectedAddressId = value);
-                              }
-                            },
-                            validator: (value) => value == null
-                                ? 'Выберите или добавьте адрес'
-                                : null,
                           ),
                         ),
                       const SizedBox(height: 30),
@@ -470,6 +523,128 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 _buildBottomSummary(f),
               ],
             ),
+    );
+  }
+
+  void _showAddressPickerSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          // Используем для мгновенного обновления внутри шторки
+          builder: (context, setSheetState) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'КУДА ДОСТАВИТЬ?',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Список адресов
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _userAddresses.length,
+                      itemBuilder: (context, index) {
+                        final addr = _userAddresses[index];
+                        final isSelected = _selectedAddressId == addr.id;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: InkWell(
+                            onTap: () {
+                              setState(() => _selectedAddressId = addr.id);
+                              Navigator.pop(context);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Colors.black.withValues(alpha: 0.03)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? Colors.black
+                                      : Colors.grey.shade200,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isSelected
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_off,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          addr.name ?? 'Адрес ${index + 1}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          addr.fullAddress,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  const Divider(height: 30),
+
+                  // Кнопка добавления нового
+                  ListTile(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showAddAddressDialog();
+                    },
+                    leading: const Icon(
+                      Icons.add_circle_outline,
+                      color: Colors.black,
+                    ),
+                    title: const Text(
+                      'ДОБАВИТЬ НОВЫЙ АДРЕС',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -702,6 +877,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Widget _buildBottomSummary(NumberFormat f) {
+    final isOnline = context.watch<ConnectivityService>().isConnected;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -737,10 +914,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _isConfirming ? null : _confirmOrder,
+              onPressed: (_isConfirming || !isOnline) ? null : _confirmOrder,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor: isOnline ? Colors.white : Colors.grey.shade800,
+                foregroundColor: isOnline ? Colors.black : Colors.white24,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -755,12 +932,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Text(
-                      'Подтвердить заказ',
+                  : Text(
+                      isOnline ? 'Подтвердить заказ' : 'ЖДЕМ СЕТЬ...',
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 17,
                         letterSpacing: 0.5,
+                        color: isOnline ? Colors.black : Colors.white24,
                       ),
                     ),
             ),
@@ -808,21 +986,41 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 }
 
-class _AddAddressDialog extends StatefulWidget {
-  const _AddAddressDialog();
+class _AddressFormDialog extends StatefulWidget {
+  final UserAddress? address;
+  const _AddressFormDialog({this.address});
 
   @override
-  State<_AddAddressDialog> createState() => __AddAddressDialogState();
+  State<_AddressFormDialog> createState() => __AddressFormDialogState();
 }
 
-class __AddAddressDialogState extends State<_AddAddressDialog> {
-  final _nameController = TextEditingController(text: 'Дом');
-  final _cityController = TextEditingController(text: 'Казань');
-  final _streetController = TextEditingController();
-  final _houseController = TextEditingController();
-  final _floorController = TextEditingController();
-  final _aptController = TextEditingController();
+class __AddressFormDialogState extends State<_AddressFormDialog> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _cityController;
+  late final TextEditingController _streetController;
+  late final TextEditingController _houseController;
+  late final TextEditingController _floorController;
+  late final TextEditingController _aptController;
   final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(
+      text: widget.address?.name ?? 'Дом',
+    );
+    _cityController = TextEditingController(
+      text: widget.address?.city ?? 'Казань',
+    );
+    _streetController = TextEditingController(
+      text: widget.address?.street ?? '',
+    );
+    _houseController = TextEditingController(text: widget.address?.house ?? '');
+    _floorController = TextEditingController(text: widget.address?.floor ?? '');
+    _aptController = TextEditingController(
+      text: widget.address?.apartment ?? '',
+    );
+  }
 
   @override
   void dispose() {
@@ -837,96 +1035,199 @@ class __AddAddressDialogState extends State<_AddAddressDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        'НОВЫЙ АДРЕС',
-        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-      ),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildField(
-                _nameController,
-                'Название (напр: Работа)',
-                isRequired: true,
-              ),
-              const SizedBox(height: 12),
-              _buildField(_cityController, 'Город', isRequired: true),
-              const SizedBox(height: 12),
-              _buildField(_streetController, 'Улица', isRequired: true),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: _buildField(
-                      _houseController,
-                      'Дом',
-                      isRequired: true,
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      backgroundColor: Colors.white,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 450), // Для десктопа
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ЗАГОЛОВОК
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.address == null ? 'НОВЫЙ АДРЕС' : 'РЕДАКТИРОВАНИЕ',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, color: Colors.grey),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // ПОЛЕ: НАЗВАНИЕ (Дом/Работа)
+                _buildModernField(
+                  controller: _nameController,
+                  label: 'Название',
+                  hint: 'Например: Дом, Офис, Дача',
+                  icon: Icons.bookmark_outline,
+                  isRequired: true,
+                ),
+                const SizedBox(height: 16),
+
+                // ПОЛЕ: ГОРОД
+                _buildModernField(
+                  controller: _cityController,
+                  label: 'Город',
+                  icon: Icons.location_city_outlined,
+                  isRequired: true,
+                ),
+                const SizedBox(height: 16),
+
+                // ПОЛЕ: УЛИЦА
+                _buildModernField(
+                  controller: _streetController,
+                  label: 'Улица',
+                  icon: Icons.add_location_outlined,
+                  isRequired: true,
+                ),
+                const SizedBox(height: 16),
+
+                // РЯД: ДОМ, ЭТАЖ, КВАРТИРА
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: _buildModernField(
+                        controller: _houseController,
+                        label: 'Дом',
+                        isRequired: true,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 1,
+                      child: _buildModernField(
+                        controller: _floorController,
+                        label: 'Этаж',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: _buildModernField(
+                        controller: _aptController,
+                        label: 'Кв/Офис',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+
+                // КНОПКА СОХРАНЕНИЯ
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        Navigator.pop(context, {
+                          'name': _nameController.text.trim(),
+                          'city': _cityController.text.trim(),
+                          'street': _streetController.text.trim(),
+                          'house': _houseController.text.trim(),
+                          'floor': _floorController.text.trim(),
+                          'apartment': _aptController.text.trim(),
+                        });
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'СОХРАНИТЬ АДРЕС',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(flex: 1, child: _buildField(_floorController, 'Эт')),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: _buildField(_aptController, 'Кв/Оф'),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('ОТМЕНА'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              Navigator.pop(context, {
-                'name': _nameController.text.trim(),
-                'city': _cityController.text.trim(),
-                'street': _streetController.text.trim(),
-                'house': _houseController.text.trim(),
-                'floor': _floorController.text.trim(),
-                'apartment': _aptController.text.trim(),
-              });
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('СОХРАНИТЬ'),
-        ),
-      ],
     );
   }
 
-  Widget _buildField(
-    TextEditingController ctrl,
-    String label, {
+  // МЕТОД ДЛЯ СОЗДАНИЯ КРАСИВОГО ПОЛЯ
+  Widget _buildModernField({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    IconData? icon,
     bool isRequired = false,
   }) {
-    return TextFormField(
-      controller: ctrl,
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.grey.shade100,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Colors.grey.shade500,
+            letterSpacing: 0.8,
+          ),
         ),
-      ),
-      validator: isRequired ? (v) => v!.isEmpty ? '!' : null : null,
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          validator: isRequired ? (v) => v!.trim().isEmpty ? '!' : null : null,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
+              color: Colors.grey.shade400,
+              fontWeight: FontWeight.normal,
+            ),
+            prefixIcon: icon != null
+                ? Icon(icon, size: 20, color: Colors.black87)
+                : null,
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.black, width: 1.5),
+            ),
+            errorStyle: const TextStyle(
+              height: 0,
+            ), // Прячем текст ошибки, оставляем только красную рамку
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -38,15 +38,16 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
     }
   }
 
-  Future<void> _addAddress() async {
+  // Универсальный метод для открытия диалога (и для создания, и для редактирования)
+  Future<void> _openAddressDialog([UserAddress? address]) async {
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (context) => const _AddAddressDialog(),
+      builder: (context) => _AddressFormDialog(address: address),
     );
 
     if (result != null && mounted) {
       try {
-        await supabase.from('user_addresses').insert({
+        final data = {
           'user_id': supabase.auth.currentUser!.id,
           'name': result['name'],
           'city': result['city'],
@@ -54,22 +55,53 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
           'house': result['house'],
           'floor': result['floor'],
           'apartment': result['apartment'],
-        });
+        };
 
-        AppNotifications.showSuccess(context, 'Адрес успешно сохранен');
+        if (address == null) {
+          // Создание
+          await supabase.from('user_addresses').insert(data);
+          AppNotifications.showSuccess(context, 'Адрес добавлен');
+        } else {
+          // Редактирование
+          await supabase
+              .from('user_addresses')
+              .update(data)
+              .eq('id', address.id);
+          AppNotifications.showSuccess(context, 'Адрес обновлен');
+        }
+
         setState(() {
           _addressesFuture = _fetchAddresses();
         });
       } catch (e) {
-        AppNotifications.showError(context, 'Не удалось добавить адрес');
+        AppNotifications.showError(context, 'Ошибка сохранения: $e');
       }
     }
   }
 
   Future<void> _deleteAddress(String addressId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Удаление'),
+        content: const Text('Удалить этот адрес?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     try {
       await supabase.from('user_addresses').delete().eq('id', addressId);
-
       if (mounted) {
         AppNotifications.showSuccess(context, 'Адрес удален');
         setState(() {
@@ -77,9 +109,7 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        AppNotifications.showError(context, 'Ошибка при удалении');
-      }
+      if (mounted) AppNotifications.showError(context, 'Ошибка при удалении');
     }
   }
 
@@ -115,24 +145,13 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
           final addresses = snapshot.data!;
 
           if (addresses.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.home_work_outlined,
-                    size: 80,
-                    color: Colors.grey[300],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'СПИСОК ПУСТ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
+            return const Center(
+              child: Text(
+                'СПИСОК ПУСТ',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
               ),
             );
           }
@@ -171,19 +190,30 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
                       letterSpacing: 0.5,
                     ),
                   ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      address.fullAddress,
-                      style: const TextStyle(color: Colors.black87),
-                    ),
+                  subtitle: Text(
+                    address.fullAddress,
+                    style: const TextStyle(color: Colors.black87),
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(
-                      Icons.delete_outline_rounded,
-                      color: Colors.redAccent,
-                    ),
-                    onPressed: () => _deleteAddress(address.id),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // КНОПКА РЕДАКТИРОВАНИЯ
+                      IconButton(
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          color: Colors.blue,
+                        ),
+                        onPressed: () => _openAddressDialog(address),
+                      ),
+                      // КНОПКА УДАЛЕНИЯ
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          color: Colors.redAccent,
+                        ),
+                        onPressed: () => _deleteAddress(address.id),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -194,116 +224,255 @@ class _UserAddressesPageState extends State<UserAddressesPage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        onPressed: _addAddress,
+        onPressed: () => _openAddressDialog(), // Добавление
         child: const Icon(Icons.add),
       ),
     );
   }
 }
 
-class _AddAddressDialog extends StatefulWidget {
-  const _AddAddressDialog();
+class _AddressFormDialog extends StatefulWidget {
+  final UserAddress? address;
+  const _AddressFormDialog({this.address});
+
   @override
-  State<_AddAddressDialog> createState() => __AddAddressDialogState();
+  State<_AddressFormDialog> createState() => __AddressFormDialogState();
 }
 
-class __AddAddressDialogState extends State<_AddAddressDialog> {
-  final _nameController = TextEditingController(text: 'Дом');
-  final _cityController = TextEditingController(text: 'Казань');
-  final _streetController = TextEditingController();
-  final _houseController = TextEditingController();
-  final _floorController = TextEditingController();
-  final _aptController = TextEditingController();
+class __AddressFormDialogState extends State<_AddressFormDialog> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _cityController;
+  late final TextEditingController _streetController;
+  late final TextEditingController _houseController;
+  late final TextEditingController _floorController;
+  late final TextEditingController _aptController;
   final _formKey = GlobalKey<FormState>();
 
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        'НОВЫЙ АДРЕС',
-        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-      ),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildField(
-                _nameController,
-                'Название (напр: Работа)',
-                isRequired: true,
-              ),
-              const SizedBox(height: 12),
-              _buildField(_cityController, 'Город', isRequired: true),
-              const SizedBox(height: 12),
-              _buildField(_streetController, 'Улица', isRequired: true),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: _buildField(
-                      _houseController,
-                      'Дом',
-                      isRequired: true,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(flex: 1, child: _buildField(_floorController, 'Эт')),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: _buildField(_aptController, 'Кв/Офис'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('ОТМЕНА'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              Navigator.pop(context, {
-                'name': _nameController.text.trim(),
-                'city': _cityController.text.trim(),
-                'street': _streetController.text.trim(),
-                'house': _houseController.text.trim(),
-                'floor': _floorController.text.trim(),
-                'apartment': _aptController.text.trim(),
-              });
-            }
-          },
-          child: const Text('СОХРАНИТЬ'),
-        ),
-      ],
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(
+      text: widget.address?.name ?? 'Дом',
+    );
+    _cityController = TextEditingController(
+      text: widget.address?.city ?? 'Казань',
+    );
+    _streetController = TextEditingController(
+      text: widget.address?.street ?? '',
+    );
+    _houseController = TextEditingController(text: widget.address?.house ?? '');
+    _floorController = TextEditingController(text: widget.address?.floor ?? '');
+    _aptController = TextEditingController(
+      text: widget.address?.apartment ?? '',
     );
   }
 
-  Widget _buildField(
-    TextEditingController ctrl,
-    String label, {
-    bool isRequired = false,
-  }) {
-    return TextFormField(
-      controller: ctrl,
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.grey.shade100,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _cityController.dispose();
+    _streetController.dispose();
+    _houseController.dispose();
+    _floorController.dispose();
+    _aptController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      backgroundColor: Colors.white,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 450), // Для десктопа
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ЗАГОЛОВОК
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.address == null ? 'НОВЫЙ АДРЕС' : 'РЕДАКТИРОВАНИЕ',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, color: Colors.grey),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // ПОЛЕ: НАЗВАНИЕ (Дом/Работа)
+                _buildModernField(
+                  controller: _nameController,
+                  label: 'Название',
+                  hint: 'Например: Дом, Офис, Дача',
+                  icon: Icons.bookmark_outline,
+                  isRequired: true,
+                ),
+                const SizedBox(height: 16),
+
+                // ПОЛЕ: ГОРОД
+                _buildModernField(
+                  controller: _cityController,
+                  label: 'Город',
+                  icon: Icons.location_city_outlined,
+                  isRequired: true,
+                ),
+                const SizedBox(height: 16),
+
+                // ПОЛЕ: УЛИЦА
+                _buildModernField(
+                  controller: _streetController,
+                  label: 'Улица',
+                  icon: Icons.add_location_outlined,
+                  isRequired: true,
+                ),
+                const SizedBox(height: 16),
+
+                // РЯД: ДОМ, ЭТАЖ, КВАРТИРА
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: _buildModernField(
+                        controller: _houseController,
+                        label: 'Дом',
+                        isRequired: true,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 1,
+                      child: _buildModernField(
+                        controller: _floorController,
+                        label: 'Этаж',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: _buildModernField(
+                        controller: _aptController,
+                        label: 'Кв/Офис',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+
+                // КНОПКА СОХРАНЕНИЯ
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        Navigator.pop(context, {
+                          'name': _nameController.text.trim(),
+                          'city': _cityController.text.trim(),
+                          'street': _streetController.text.trim(),
+                          'house': _houseController.text.trim(),
+                          'floor': _floorController.text.trim(),
+                          'apartment': _aptController.text.trim(),
+                        });
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'СОХРАНИТЬ АДРЕС',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
-      validator: isRequired ? (v) => v!.isEmpty ? 'Заполните' : null : null,
+    );
+  }
+
+  // МЕТОД ДЛЯ СОЗДАНИЯ КРАСИВОГО ПОЛЯ
+  Widget _buildModernField({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    IconData? icon,
+    bool isRequired = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Colors.grey.shade500,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          validator: isRequired ? (v) => v!.trim().isEmpty ? '!' : null : null,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
+              color: Colors.grey.shade400,
+              fontWeight: FontWeight.normal,
+            ),
+            prefixIcon: icon != null
+                ? Icon(icon, size: 20, color: Colors.black87)
+                : null,
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.black, width: 1.5),
+            ),
+            errorStyle: const TextStyle(
+              height: 0,
+            ), // Прячем текст ошибки, оставляем только красную рамку
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

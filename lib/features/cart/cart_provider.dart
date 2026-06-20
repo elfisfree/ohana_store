@@ -95,6 +95,14 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearOrderedItems(List<String> orderedIds) {
+    _items.removeWhere((item) => orderedIds.contains(item.id));
+
+    _selectedItemIds.removeAll(orderedIds);
+
+    notifyListeners();
+  }
+
   Future<void> removeFromCart(String cartItemId) async {
     try {
       _items.removeWhere((item) => item.id == cartItemId);
