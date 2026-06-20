@@ -331,10 +331,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         return 'ЗАЯВКА НА ВОЗВРАТ';
       case 'returned':
         return 'ВОЗВРАЩЕНО';
-      case 'returned':
-        return 'ОТМЕНЕН';
-      case 'return_requested':
-        return 'ЗАЯВКА НА ВОЗВРАТ';
       default:
         return status.toUpperCase();
     }

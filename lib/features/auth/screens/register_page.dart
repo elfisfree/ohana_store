@@ -1,10 +1,13 @@
 // lib/features/auth/screens/register_page.dart
 // ignore_for_file: use_build_context_synchronously
 
+// ignore: unused_import
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:ohana_store/core/utils/app_notifications.dart';
 import 'package:ohana_store/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
@@ -52,34 +55,42 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+  // --- ОБНОВЛЕННЫЙ МЕТОД РЕГИСТРАЦИИ ---
   Future<void> _signUp() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
+
     if (_selectedGender == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Пожалуйста, выберите ваш пол'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    if (!_phoneFormatter.isFill()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Введите полный номер телефона'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppNotifications.showError(context, 'Выберите ваш пол');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (!_phoneFormatter.isFill()) {
+      AppNotifications.showError(context, 'Введите полный номер телефона');
+      return;
+    }
+
+    setState(() => _isLoading = true);
 
     try {
+      final String phone = _phoneController.text.trim();
+
+      // 1. ПРОВЕРКА НА УНИКАЛЬНОСТЬ ТЕЛЕФОНА
+      final existingPhone = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('phone', phone)
+          .maybeSingle();
+
+      if (existingPhone != null) {
+        AppNotifications.showError(
+          context,
+          'Этот номер телефона уже используется',
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // 2. РЕГИСТРАЦИЯ
       await supabase.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -90,44 +101,25 @@ class _RegisterPageState extends State<RegisterPage> {
           'date_of_birth': _selectedDate?.toIso8601String(),
           'avatar_url': '',
           'gender': _selectedGender,
-          'phone': _phoneController.text.trim(),
+          'phone': phone,
         },
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Регистрация успешна! Проверьте почту для подтверждения.',
-            ),
-          ),
+        AppNotifications.showSuccess(
+          context,
+          'Регистрация успешна! Проверьте почту',
         );
         context.go('/login');
       }
     } on AuthException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.message),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      if (mounted) AppNotifications.showError(context, error.message);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Произошла непредвиденная ошибка'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        AppNotifications.showError(context, 'Произошла непредвиденная ошибка');
       }
-    }
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -267,7 +259,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                     v!.isEmpty ? 'Обязательное поле' : null,
                               ),
                               const SizedBox(height: 16),
-
                               TextFormField(
                                 controller: _dobController,
                                 style: const TextStyle(color: Colors.white),
@@ -279,7 +270,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                 onTap: () => _selectDate(context),
                               ),
                               const SizedBox(height: 16),
-
                               Text(
                                 'Ваш пол',
                                 style: TextStyle(
@@ -330,7 +320,6 @@ class _RegisterPageState extends State<RegisterPage> {
                                   ],
                                 ),
                               ),
-
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _emailController,

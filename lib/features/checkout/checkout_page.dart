@@ -91,20 +91,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (response['error'] != null) {
         throw Exception(response['error']);
       }
+
       final allowedTypeIds = List<String>.from(
         response['applicable_product_type_ids'] ?? [],
       );
       if (allowedTypeIds.isNotEmpty) {
-        bool hasMatchingProduct = _selectedItems.any(
+        final hasEligibleItems = _selectedItems.any(
           (item) => allowedTypeIds.contains(item.product.productType?.id),
         );
 
-        if (!hasMatchingProduct) {
-          throw Exception(
-            'Данный промокод не действует на выбранные категории товаров',
-          );
+        if (!hasEligibleItems) {
+          throw Exception('Этот промокод не применим к выбранным вами товарам');
         }
       }
+
       setState(() {
         _appliedPromocode = AppliedPromocode(
           id: response['id'],
@@ -116,7 +116,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       });
 
       if (mounted) {
-        AppNotifications.showSuccess(context, 'Промокод успешно применен!');
+        AppNotifications.showSuccess(
+          context,
+          'Промокод применен к подходящим товарам!',
+        );
       }
     } catch (e) {
       setState(() {
@@ -141,7 +144,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         supabase
             .from('cart_items')
             .select(
-              '*, products(*, brands(*)), product_variants(*, product_stock(*))',
+              '*, products(*, brands(*), product_types(*)), product_variants(*, product_stock(*))',
             )
             .inFilter('id', widget.selectedCartItemIds.toList()),
 
@@ -245,21 +248,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
 
     _discountAmount = 0.0;
+
     if (_appliedPromocode != null) {
-      double amountToDiscount = _subtotal;
-
-      if (_appliedPromocode!.applicableProductTypeIds.isNotEmpty) {
-        amountToDiscount = _selectedItems
-            .where(
-              (item) => _appliedPromocode!.applicableProductTypeIds.contains(
-                item.product.productType?.id,
-              ),
-            )
-            .fold(0, (sum, item) => sum + (item.product.price * item.quantity));
+      double eligibleAmount = 0.0;
+      if (_appliedPromocode!.applicableProductTypeIds.isEmpty) {
+        eligibleAmount = _subtotal;
+      } else {
+        for (var item in _selectedItems) {
+          if (_appliedPromocode!.applicableProductTypeIds.contains(
+            item.product.productType?.id,
+          )) {
+            eligibleAmount += (item.product.price * item.quantity);
+          }
+        }
       }
-
       _discountAmount =
-          amountToDiscount * (_appliedPromocode!.discountPercentage / 100);
+          eligibleAmount * (_appliedPromocode!.discountPercentage / 100);
     }
 
     _deliveryCost = _deliveryMethod == DeliveryMethod.courier ? 300.0 : 0.0;

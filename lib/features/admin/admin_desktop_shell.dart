@@ -70,6 +70,12 @@ class AdminDesktopShell extends StatelessWidget {
                 ),
                 _menuItem(
                   context,
+                  'Справочники',
+                  Icons.book_outlined,
+                  '/admin/dictionaries',
+                ),
+                _menuItem(
+                  context,
                   'Заказы',
                   Icons.local_shipping_outlined,
                   '/admin/orders',

@@ -6,9 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ohana_store/core/admin_theme.dart';
 import 'package:ohana_store/core/utils/app_notifications.dart';
+import 'package:ohana_store/features/admin/promocodes_provider.dart';
 import 'package:ohana_store/main.dart';
 import 'package:ohana_store/models/product.dart';
 import 'package:ohana_store/models/promocode.dart';
+import 'package:provider/provider.dart';
 
 class UpsertPromocodePage extends StatefulWidget {
   final Promocode? promocode;
@@ -179,8 +181,12 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
       }
 
       if (mounted) {
-        AppNotifications.showSuccess(context, 'Промокод успешно сохранен');
-        context.go('/admin/promocodes');
+        AppNotifications.showSuccess(context, 'Данные сохранены');
+
+        // --- ГЛАВНОЕ ОБНОВЛЕНИЕ ЧЕРЕЗ ПРОВАЙДЕР ---
+        context.read<PromocodesProvider>().fetchPromocodes();
+
+        context.pop(); // Просто закрываем страницу
       }
     } catch (e) {
       if (mounted) AppNotifications.showError(context, 'Ошибка: $e');

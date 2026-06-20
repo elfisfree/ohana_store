@@ -52,7 +52,12 @@ class AdminProductsPage extends StatelessWidget {
                       ],
                     ),
                     ElevatedButton.icon(
-                      onPressed: () => context.push('/admin/products/new'),
+                      onPressed: () async {
+                        // 1. Ждем, пока админ добавит товар и нажмет "Сохранить"
+                        await context.push('/admin/products/new');
+                        // 2. После возврата на эту страницу — обновляем список
+                        provider.fetchProducts();
+                      },
                       icon: const Icon(Icons.add_box_rounded),
                       label: const Text('НОВЫЙ ТОВАР'),
                       style: ElevatedButton.styleFrom(
@@ -346,10 +351,13 @@ class AdminProductsPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: IconButton(
-                          onPressed: () => context.push(
-                            '/admin/products/edit/${product.id}',
-                            extra: product,
-                          ),
+                          onPressed: () async {
+                            await context.push(
+                              '/admin/products/edit/${product.id}',
+                              extra: product,
+                            );
+                            provider.fetchProducts();
+                          },
                           icon: const Icon(
                             Icons.edit_note_rounded,
                             color: AdminColors.accentBlue,

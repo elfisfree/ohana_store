@@ -1,6 +1,8 @@
 // lib/features/admin/admin_users_page.dart
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ohana_store/core/admin_theme.dart';
@@ -21,6 +23,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   bool _isFetchingMore = false;
   bool _hasNextPage = true;
   final int _pageSize = 20;
+
   String _searchQuery = '';
   String _selectedRole = 'all';
   RangeValues _ageRange = const RangeValues(0, 100);
@@ -29,11 +32,14 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   late RangeValues _yearRange;
   bool _isFilterVisible = true;
 
+  Timer? _filterDebounce; // Для задержки запроса при вводе/слайдерах
+
   @override
   void initState() {
     super.initState();
     _yearRange = RangeValues(_minYear, _maxYear);
     _loadInitialData();
+
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 200) {
@@ -47,17 +53,27 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _filterDebounce?.cancel();
     super.dispose();
   }
 
+  // Метод для запуска фильтрации с задержкой 500мс
+  void _onFilterChanged() {
+    if (_filterDebounce?.isActive ?? false) _filterDebounce!.cancel();
+    _filterDebounce = Timer(const Duration(milliseconds: 500), () {
+      _loadInitialData();
+    });
+  }
+
   Future<void> _loadInitialData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _allUsers = [];
       _hasNextPage = true;
     });
     await _fetchMoreUsers();
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _fetchMoreUsers() async {
@@ -67,15 +83,55 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     try {
       final int from = _allUsers.length;
       final int to = from + _pageSize - 1;
+
       var query = supabase.from('admin_users_view').select();
+
+      // 1. Поиск по тексту
       if (_searchQuery.isNotEmpty) {
         query = query.or(
           'first_name.ilike.%$_searchQuery%,last_name.ilike.%$_searchQuery%,email.ilike.%$_searchQuery%',
         );
       }
+
+      // 2. Фильтр по роли
       if (_selectedRole != 'all') {
         query = query.eq('role', _selectedRole);
       }
+
+      // 3. ФИЛЬТР ПО ВОЗРАСТУ (Конвертация возраста в даты рождения)
+      final now = DateTime.now();
+      // Те, кому сейчас X лет, родились между (сейчас - X-1 лет) и (сейчас - X лет)
+      final DateTime birthDateStart = DateTime(
+        now.year - _ageRange.end.toInt() - 1,
+        now.month,
+        now.day,
+      );
+      final DateTime birthDateEnd = DateTime(
+        now.year - _ageRange.start.toInt(),
+        now.month,
+        now.day,
+      );
+
+      query = query
+          .gte('date_of_birth', birthDateStart.toIso8601String())
+          .lte('date_of_birth', birthDateEnd.toIso8601String());
+
+      // 4. ФИЛЬТР ПО ГОДУ РЕГИСТРАЦИИ
+      final DateTime regStart = DateTime(_yearRange.start.toInt(), 1, 1);
+      final DateTime regEnd = DateTime(
+        _yearRange.end.toInt(),
+        12,
+        31,
+        23,
+        59,
+        59,
+      );
+
+      query = query
+          .gte('created_at', regStart.toIso8601String())
+          .lte('created_at', regEnd.toIso8601String());
+
+      // 5. Выполнение с пагинацией
       final response = await query
           .range(from, to)
           .order('created_at', ascending: false);
@@ -95,13 +151,11 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       }
     } catch (e) {
       print('Error fetching users: $e');
-      setState(() => _isFetchingMore = false);
+      if (mounted) setState(() => _isFetchingMore = false);
     }
   }
 
-  void _onFilterChanged() {
-    _loadInitialData();
-  }
+  // --- ДАЛЕЕ UI ЧАСТЬ БЕЗ ИЗМЕНЕНИЙ В СТРУКТУРЕ, НО С ИСПРАВЛЕННЫМИ ВЫЗОВАМИ ---
 
   @override
   Widget build(BuildContext context) {
@@ -111,44 +165,8 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         padding: const EdgeInsets.all(30.0),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'БАЗА КЛИЕНТОВ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Загружено: ${_allUsers.length}',
-                      style: const TextStyle(
-                        color: AdminColors.accentBlue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: Icon(
-                    _isFilterVisible
-                        ? Icons.filter_list_off
-                        : Icons.filter_list,
-                    color: Colors.white,
-                  ),
-                  onPressed: () =>
-                      setState(() => _isFilterVisible = !_isFilterVisible),
-                ),
-              ],
-            ),
+            _buildHeader(),
             const SizedBox(height: 25),
-
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,7 +174,11 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                   Expanded(
                     flex: 2,
                     child: _isLoading
-                        ? const Center(child: CircularProgressIndicator())
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: AdminColors.accentBlue,
+                            ),
+                          )
                         : ListView.builder(
                             controller: _scrollController,
                             itemCount:
@@ -178,10 +200,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                   ),
                   if (_isFilterVisible) ...[
                     const SizedBox(width: 30),
-                    SizedBox(
-                      width: 300,
-                      child: SingleChildScrollView(child: _buildFilterCard()),
-                    ),
+                    SizedBox(width: 300, child: _buildFilterCard()),
                   ],
                 ],
               ),
@@ -189,6 +208,42 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'БАЗА КЛИЕНТОВ',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              'Найдено записей: ${_allUsers.length}${_hasNextPage ? "+" : ""}',
+              style: const TextStyle(
+                color: AdminColors.accentBlue,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        IconButton(
+          icon: Icon(
+            _isFilterVisible ? Icons.filter_list_off : Icons.filter_list,
+            color: Colors.white,
+          ),
+          onPressed: () => setState(() => _isFilterVisible = !_isFilterVisible),
+        ),
+      ],
     );
   }
 
@@ -230,23 +285,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             ),
           ),
           const SizedBox(height: 25),
-          const Text(
-            'РОЛЬ',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            children: [
-              _roleChip('Все', 'all'),
-              _roleChip('Клиент', 'user'),
-              _roleChip('Админ', 'admin'),
-            ],
-          ),
+          _roleSection(),
           const SizedBox(height: 25),
           _buildSliderLabel(
             'ВОЗРАСТ',
@@ -256,6 +295,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             values: _ageRange,
             min: 0,
             max: 100,
+            divisions: 20,
             activeColor: AdminColors.accentBlue,
             onChanged: (val) {
               setState(() => _ageRange = val);
@@ -271,6 +311,9 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             values: _yearRange,
             min: _minYear,
             max: _maxYear,
+            divisions: (_maxYear - _minYear).toInt() == 0
+                ? 1
+                : (_maxYear - _minYear).toInt(),
             activeColor: AdminColors.accentBlue,
             onChanged: (val) {
               setState(() => _yearRange = val);
@@ -279,6 +322,33 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _roleSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'РОЛЬ',
+          style: TextStyle(
+            color: Colors.white54,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          children: [
+            _roleChip('Все', 'all'),
+            _roleChip('Клиент', 'user'),
+            _roleChip('Админ', 'admin'),
+            _roleChip('Сборщик', 'collector'),
+            _roleChip('Курьер', 'courier'),
+          ],
+        ),
+      ],
     );
   }
 
@@ -291,15 +361,13 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       ),
       child: ListTile(
         onTap: () => context.push('/admin/users/${user.id}', extra: user),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: CircleAvatar(
-          radius: 25,
           backgroundColor: AdminColors.sidebar,
           backgroundImage:
               (user.avatarUrl != null && user.avatarUrl!.startsWith('http'))
               ? NetworkImage(user.avatarUrl!)
               : null,
-          child: (user.avatarUrl == null || !user.avatarUrl!.startsWith('http'))
+          child: (user.avatarUrl == null)
               ? const Icon(Icons.person, color: Colors.white24)
               : null,
         ),
@@ -312,22 +380,49 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         ),
         subtitle: Text(
           user.email,
-          style: const TextStyle(color: Colors.white38, fontSize: 13),
+          style: const TextStyle(color: Colors.white38),
         ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: AdminColors.sidebar,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            user.role.toUpperCase(),
-            style: const TextStyle(
-              color: AdminColors.accentBlue,
-              fontWeight: FontWeight.bold,
-              fontSize: 10,
-            ),
-          ),
+        trailing: _buildRoleBadge(user.role),
+      ),
+    );
+  }
+
+  Widget _buildRoleBadge(String role) {
+    Color color;
+    String text;
+
+    switch (role.toLowerCase()) {
+      case 'admin':
+        color = AdminColors.accentBlue;
+        text = 'АДМИН';
+        break;
+      case 'collector':
+        color = Colors.greenAccent;
+        text = 'СБОРЩИК';
+        break;
+      case 'courier':
+        color = Colors.orangeAccent;
+        text = 'КУРЬЕР';
+        break;
+      default:
+        color = Colors.white24;
+        text = 'КЛИЕНТ';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -370,12 +465,8 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       },
       selectedColor: AdminColors.accentBlue,
       backgroundColor: AdminColors.sidebar,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.white38,
-        fontWeight: FontWeight.bold,
-      ),
+      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.white38),
       showCheckmark: false,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 }
