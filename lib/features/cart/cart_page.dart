@@ -8,8 +8,26 @@ import 'package:ohana_store/models/cart_item.dart';
 import 'package:ohana_store/models/product.dart';
 import 'package:provider/provider.dart';
 
-class CartPage extends StatelessWidget {
+// 1. МЕНЯЕМ НА StatefulWidget
+class CartPage extends StatefulWidget {
   const CartPage({super.key});
+
+  @override
+  State<CartPage> createState() => _CartPageState();
+}
+
+class _CartPageState extends State<CartPage> {
+  // 2. ДОБАВЛЯЕМ initState ДЛЯ АВТО-ОБНОВЛЕНИЯ
+  @override
+  void initState() {
+    super.initState();
+    // Выполняем загрузку данных сразу после того, как контекст стал доступен
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<CartProvider>().fetchCartItems();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +60,8 @@ class CartPage extends StatelessWidget {
       },
     );
   }
+
+  // --- ОСТАЛЬНЫЕ МЕТОДЫ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ, НО ВНУТРИ КЛАССА _CartPageState ---
 
   Widget _buildBody(BuildContext context, CartProvider cartProvider) {
     if (cartProvider.isLoading) {
@@ -98,8 +118,8 @@ class CartPage extends StatelessWidget {
       symbol: '₽',
       decimalDigits: 0,
     );
-
     final isSelected = cartProvider.selectedItemIds.contains(item.id);
+
     String imageUrl = "";
     if (item.variant != null && item.variant!.imageUrls.isNotEmpty) {
       imageUrl = item.variant!.imageUrls.first;
@@ -186,7 +206,6 @@ class CartPage extends StatelessWidget {
               ],
             ),
           ),
-
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -232,7 +251,6 @@ class CartPage extends StatelessWidget {
                             orElse: () =>
                                 StockItem(id: '', size: 0, quantity: 0),
                           );
-
                           if (stock != null && item.quantity < stock.quantity) {
                             cartProvider.updateQuantity(
                               item.id,
@@ -261,13 +279,11 @@ class CartPage extends StatelessWidget {
     if (cartProvider.items.isEmpty || cartProvider.isLoading) {
       return const SizedBox.shrink();
     }
-
     final currencyFormatter = NumberFormat.currency(
       locale: 'ru_RU',
       symbol: '₽',
       decimalDigits: 0,
     );
-
     final isEnabled = cartProvider.selectedItemIds.isNotEmpty;
 
     return Container(
@@ -325,7 +341,7 @@ class CartPage extends StatelessWidget {
                 elevation: 0,
               ),
               child: Text(
-                "ОФОРМИТЬ ЗАКАЗ",
+                "ОФОРМИТЬ ЗАКАЗ (${cartProvider.selectedItemIds.length})",
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
                   fontSize: 16,

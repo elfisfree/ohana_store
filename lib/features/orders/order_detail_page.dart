@@ -394,13 +394,18 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           final order = snapshot.data!.$1;
           final reviewedIds = snapshot.data!.$2;
           final history = snapshot.data!.$3;
+
+          final bool isAnyStaff =
+              widget.isAdmin || widget.isCollector || widget.isCourier;
+
           final f = NumberFormat.currency(
             locale: 'ru_RU',
             symbol: '₽',
             decimalDigits: 0,
           );
 
-          if (order.paymentStatus == 'pending' &&
+          if (order.paymentMethod == 'online' &&
+              order.paymentStatus == 'pending' &&
               order.expiresAt != null &&
               _countdownTimer == null) {
             _startTimer(order.expiresAt!.toLocal());
@@ -469,6 +474,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   _buildTotalCard(order, useDark, textColor, f),
 
                   if (!isAnyStaff &&
+                      order.paymentMethod == 'online' &&
                       order.paymentStatus == 'pending' &&
                       !_timeLeft.isNegative &&
                       _timeLeft != Duration.zero)
@@ -491,6 +497,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     Color sub,
     Color div,
   ) {
+    final bool isAnyStaff =
+        widget.isAdmin || widget.isCollector || widget.isCourier;
+
     return Container(
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
@@ -531,6 +540,38 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 ),
             ],
           ),
+          if (isAnyStaff && order.paymentStatus == 'pending')
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: 15),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                    size: 18,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'ТРЕБУЕТСЯ ПРИНЯТЬ ОПЛАТУ ПРИ ВРУЧЕНИИ',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 15),
           _infoLine('СТАТУС', _translateStatus(order.status), text, sub),
           _infoLine(
             'ОПЛАТА',
@@ -551,7 +592,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            order.shippingAddress ?? 'пр-т. Победы, 141, Казань',
+            order.shippingAddress ??
+                'пр-т. Победы, 141, Казань, Респ. Татарстан, Россия',
             style: TextStyle(
               color: text,
               fontWeight: FontWeight.w600,

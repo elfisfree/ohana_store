@@ -237,6 +237,32 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
                       ),
                     ),
                     const SizedBox(height: 15),
+                    if (order.paymentStatus == 'pending')
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(15),
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade800,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.white,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'ТРЕБУЕТСЯ ПРИНЯТЬ ОПЛАТУ!',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
                     Row(
                       children: [

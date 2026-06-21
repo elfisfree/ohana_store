@@ -27,7 +27,7 @@ class AppliedPromocode {
 
 enum DeliveryMethod { courier, pickup }
 
-enum PaymentMethod { online, cash }
+enum PaymentMethod { online, on_delivery }
 
 class CheckoutPage extends StatefulWidget {
   final Set<String> selectedCartItemIds;
@@ -306,6 +306,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'p_shipping_address': finalShippingAddress,
           'p_promocode_id': _appliedPromocode?.id,
           'p_with_fitting': _withFitting,
+          'p_payment_method': _paymentMethod.name,
         },
       );
       if (mounted) {
@@ -528,7 +529,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               subtitle: const Text('Тестовая оплата ЮKassa'),
-                              value: PaymentMethod.online,
+                              value: PaymentMethod.online, // Значение из Enum
                               groupValue: _paymentMethod,
                               activeColor: Colors.black,
                               onChanged: (val) =>
@@ -537,13 +538,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             const Divider(height: 1, indent: 20, endIndent: 20),
                             RadioListTile<PaymentMethod>(
                               title: const Text(
-                                'Оплатить позже',
+                                'Оплата при получении',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               subtitle: const Text(
-                                'После оформления заказа, вам дается 60 минут для оплаты',
+                                'Наличными или картой курьеру после примерки',
                               ),
-                              value: PaymentMethod.cash,
+                              value: PaymentMethod
+                                  .on_delivery, // ИЗМЕНЕНО: было cash
                               groupValue: _paymentMethod,
                               activeColor: Colors.black,
                               onChanged: (val) =>

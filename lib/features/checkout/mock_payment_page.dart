@@ -43,7 +43,7 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ТЕСТОВАЯ ОПЛАТА ЮKASSA')),
+      appBar: AppBar(title: const Text('ТЕСТОВАЯ ОПЛАТА ')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

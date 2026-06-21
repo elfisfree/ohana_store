@@ -54,6 +54,7 @@ class Order {
   final DateTime? deliveredAt;
   final String? cancellationReason;
   final bool withFitting;
+  final String paymentMethod;
 
   Order({
     required this.id,
@@ -72,6 +73,8 @@ class Order {
     this.cancellationReason,
     required this.withFitting,
     required this.actualAmountPaid,
+
+    required this.paymentMethod,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -102,6 +105,7 @@ class Order {
           : null,
       cancellationReason: json['cancellation_reason'] as String?,
       withFitting: json['with_fitting'] ?? false,
+      paymentMethod: json['payment_method'] ?? 'online',
     );
   }
 }
