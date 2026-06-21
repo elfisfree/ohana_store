@@ -1,5 +1,5 @@
 // lib/features/orders/order_detail_page.dart
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, unrelated_type_equality_checks
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -98,16 +98,16 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             .order('changed_at', ascending: false),
       ]);
 
-      final order = Order.fromJson(results[0] as Map<String, dynamic>);
-      final reviewedItemIds = (results[1] as List)
-          .map<String>((item) => item['order_item_id'] as String)
-          .toSet();
-      final history = results[2] as List<dynamic>;
-
-      return (order, reviewedItemIds, history);
+      return (
+        Order.fromJson(results[0] as Map<String, dynamic>),
+        (results[1] as List)
+            .map<String>((e) => e['order_item_id'] as String)
+            .toSet(),
+        results[2] as List<dynamic>,
+      );
     } catch (e) {
-      print("Error fetching order details: $e");
-      throw Exception('Не удалось загрузить данные');
+      print("Error: $e");
+      throw Exception('Ошибка загрузки данных');
     }
   }
 
@@ -466,7 +466,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   ),
 
                   const SizedBox(height: 30),
-                  _buildTotalCard(order, useDark, f),
+                  _buildTotalCard(order, useDark, textColor, f),
 
                   if (!isAnyStaff &&
                       order.paymentStatus == 'pending' &&
@@ -491,17 +491,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     Color sub,
     Color div,
   ) {
-    String displayAddress = "";
-    String deliveryLabel = "";
-
-    if (order.deliveryMethod == 'courier') {
-      deliveryLabel = 'ДОСТАВКА КУРЬЕРОМ';
-      displayAddress = order.shippingAddress ?? "Адрес не указан";
-    } else {
-      deliveryLabel = 'САМОВЫВОЗ (ИЗ МАГАЗИНА)';
-      displayAddress = 'пр-т. Победы, 141, Казань, Респ. Татарстан, Россия';
-    }
-
     return Container(
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
@@ -512,11 +501,35 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _infoLine(
-            'ЗАКАЗ',
-            '#${order.id.substring(0, 8).toUpperCase()}',
-            text,
-            sub,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _infoLine(
+                'ЗАКАЗ',
+                '#${order.id.substring(0, 8).toUpperCase()}',
+                text,
+                sub,
+              ),
+              if (order.withFitting)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'С ПРИМЕРКОЙ',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
           ),
           _infoLine('СТАТУС', _translateStatus(order.status), text, sub),
           _infoLine(
@@ -526,41 +539,24 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             sub,
           ),
 
-          const Divider(height: 30, color: Colors.white10),
+          const Divider(height: 30, color: Colors.black12),
 
           Text(
-            deliveryLabel,
+            order.deliveryMethod == 'courier' ? 'АДРЕС ДОСТАВКИ' : 'САМОВЫВОЗ',
             style: TextStyle(
               color: sub,
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                order.deliveryMethod == 'courier'
-                    ? Icons.local_shipping_outlined
-                    : Icons.storefront_outlined,
-                size: 20,
-                color: dark ? AdminColors.accentBlue : Colors.black87,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  displayAddress,
-                  style: TextStyle(
-                    color: text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            order.shippingAddress ?? 'пр-т. Победы, 141, Казань',
+            style: TextStyle(
+              color: text,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
           ),
         ],
       ),
@@ -776,111 +772,167 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     Color sub,
     NumberFormat f,
   ) {
-    // ignore: unused_local_variable
-    final bool isAnyStaff =
-        widget.isAdmin || widget.isCollector || widget.isCourier;
+    final bool isReturned = !item.isKept;
     final bool canReview =
-        !staff && status == 'delivered' && !reviewedIds.contains(item.id);
+        !staff &&
+        status == 'delivered' &&
+        !reviewedIds.contains(item.id) &&
+        item.isKept;
+
     String imageUrl = "";
     if (item.variant != null && item.variant!.imageUrls.isNotEmpty) {
       imageUrl = item.variant!.imageUrls.first;
-    } else if (item.product.variants.isNotEmpty) {
-      imageUrl = item.product.variants.first.imageUrls.first;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(15),
-        border: staff && !widget.isAdmin
-            ? Border.all(color: Colors.grey.shade200)
-            : null,
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              imageUrl,
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
-            ),
+    return Opacity(
+      opacity: isReturned ? 0.5 : 1.0,
+      child: Container(
+        margin: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: staff ? AdminColors.card : Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(
+            color: isReturned
+                ? Colors.red.withValues(alpha: 0.2)
+                : Colors.grey.shade200,
           ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.product.name,
-                  style: TextStyle(color: text, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Размер: ${item.size.toInt()}, Цвет: ${item.variant?.colorName ?? 'Базовый'}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-                if (canReview)
-                  TextButton(
-                    onPressed: () async {
-                      final res = await context.push(
-                        '/add-review',
-                        extra: {
-                          'order_item_id': item.id,
-                          'product_id': item.product.id,
-                        },
-                      );
-                      if (res == true) {
-                        setState(() {
-                          _orderDataFuture = _fetchAllOrderData();
-                        });
-                      }
-                    },
-                    child: const Text(
-                      'ОСТАВИТЬ ОТЗЫВ',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                imageUrl,
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.product.name,
+                    style: TextStyle(
+                      color: text,
+                      fontWeight: FontWeight.bold,
+                      decoration: isReturned
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
-              ],
+                  Text(
+                    'Размер: ${item.size.toInt()} ${isReturned ? " (ВОЗВРАТ)" : ""}',
+                    style: TextStyle(
+                      color: isReturned ? Colors.red : Colors.grey,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (canReview)
+                    TextButton(
+                      onPressed: () async {
+                        final res = await context.push(
+                          '/add-review',
+                          extra: {
+                            'order_item_id': item.id,
+                            'product_id': item.product.id,
+                          },
+                        );
+                        if (res == true) {
+                          setState(
+                            () => _orderDataFuture = _fetchAllOrderData(),
+                          );
+                        }
+                      },
+                      child: const Text(
+                        'ОСТАВИТЬ ОТЗЫВ',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          Text(
-            f.format(item.priceAtPurchase),
-            style: TextStyle(color: text, fontWeight: FontWeight.bold),
-          ),
-        ],
+            Text(
+              f.format(item.priceAtPurchase),
+              style: TextStyle(
+                color: text,
+                fontWeight: FontWeight.bold,
+                decoration: isReturned ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTotalCard(Order order, bool isStaff, NumberFormat f) {
+  Widget _buildTotalCard(Order order, bool dark, Color text, NumberFormat f) {
+    final bool showActual =
+        order.status == 'delivered' &&
+        (order.actualAmountPaid != order.finalPrice > 0);
+
     return Container(
       padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: isStaff ? AdminColors.card : Colors.white,
+        color: dark ? AdminColors.card : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: isStaff ? null : Border.all(color: Colors.grey.shade200),
+        border: dark ? null : Border.all(color: Colors.grey.shade200),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          const Text(
-            'ИТОГО К ОПЛАТЕ',
-            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                showActual ? 'ИТОГО К ОПЛАТЕ (БЫЛО)' : 'ИТОГО К ОПЛАТЕ',
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              Text(
+                f.format(order.finalPrice),
+                style: TextStyle(
+                  color: text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  decoration: showActual ? TextDecoration.lineThrough : null,
+                ),
+              ),
+            ],
           ),
-          Text(
-            f.format(order.finalPrice),
-            style: TextStyle(
-              color: isStaff ? AdminColors.accentBlue : Colors.black,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
+          if (showActual) ...[
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'ФАКТИЧЕСКИ ОПЛАЧЕНО',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  f.format(order.actualAmountPaid),
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
-          ),
+          ],
         ],
       ),
     );

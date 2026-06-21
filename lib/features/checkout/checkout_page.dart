@@ -43,6 +43,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   double _discountAmount = 0.0;
   bool _isPromocodeLoading = false;
   bool _isLoading = true;
+
+  bool _withFitting = false;
+
   String? _error;
   List<CartItem> _selectedItems = [];
   PaymentMethod _paymentMethod = PaymentMethod.online;
@@ -302,6 +305,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'p_delivery_method': _deliveryMethod.name,
           'p_shipping_address': finalShippingAddress,
           'p_promocode_id': _appliedPromocode?.id,
+          'p_with_fitting': _withFitting,
         },
       );
       if (mounted) {
@@ -477,6 +481,38 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           ),
                         ),
                       const SizedBox(height: 30),
+
+                      _buildSectionTitle('Дополнительные услуги'),
+                      const SizedBox(height: 10),
+
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: SwitchListTile(
+                          secondary: const Icon(
+                            Icons.checkroom_outlined,
+                            color: Colors.black,
+                          ),
+                          title: const Text(
+                            'Примерка перед покупкой',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Можно вернуть часть товара курьеру',
+                            style: TextStyle(fontSize: 11),
+                          ),
+                          value: _withFitting,
+                          activeColor: Colors.black,
+                          onChanged: (val) =>
+                              setState(() => _withFitting = val),
+                        ),
+                      ),
+
                       _buildSectionTitle('Способ оплаты'),
                       const SizedBox(height: 10),
                       Container(
@@ -1177,6 +1213,8 @@ class __AddressFormDialogState extends State<_AddressFormDialog> {
     String? hint,
     IconData? icon,
     bool isRequired = false,
+    bool isReadOnly = false, // Новый параметр
+    String? helperText, // Новый параметр
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1193,19 +1231,38 @@ class __AddressFormDialogState extends State<_AddressFormDialog> {
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
-          validator: isRequired ? (v) => v!.trim().isEmpty ? '!' : null : null,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          readOnly: isReadOnly, // ПРИМЕНЯЕМ: запрет редактирования
+          validator: isRequired && !isReadOnly
+              ? (v) => v!.trim().isEmpty ? '!' : null
+              : null,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            // Если поле только для чтения, делаем текст чуть тусклее
+            color: isReadOnly ? Colors.grey.shade600 : Colors.black,
+          ),
           decoration: InputDecoration(
             hintText: hint,
+            // ПРИМЕНЯЕМ: Настройка подсказки (например, про Казань)
+            helperText: helperText,
+            helperStyle: const TextStyle(
+              color: Colors.orange,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
             hintStyle: TextStyle(
               color: Colors.grey.shade400,
               fontWeight: FontWeight.normal,
             ),
             prefixIcon: icon != null
-                ? Icon(icon, size: 20, color: Colors.black87)
+                ? Icon(
+                    icon,
+                    size: 20,
+                    color: isReadOnly ? Colors.grey : Colors.black87,
+                  )
                 : null,
             filled: true,
-            fillColor: Colors.grey.shade100,
+            fillColor: isReadOnly ? Colors.grey.shade200 : Colors.grey.shade100,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,
@@ -1216,11 +1273,12 @@ class __AddressFormDialogState extends State<_AddressFormDialog> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Colors.black, width: 1.5),
+              borderSide: BorderSide(
+                color: isReadOnly ? Colors.transparent : Colors.black,
+                width: 1.5,
+              ),
             ),
-            errorStyle: const TextStyle(
-              height: 0,
-            ), // Прячем текст ошибки, оставляем только красную рамку
+            errorStyle: const TextStyle(height: 0),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),

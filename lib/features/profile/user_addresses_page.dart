@@ -327,8 +327,10 @@ class __AddressFormDialogState extends State<_AddressFormDialog> {
                 _buildModernField(
                   controller: _cityController,
                   label: 'Город',
-                  icon: Icons.location_city_outlined,
+                  icon: Icons.location_city,
                   isRequired: true,
+                  isReadOnly: true, // Добавим этот параметр в метод _buildField
+                  helperText: 'Доставка только по г. Казань',
                 ),
                 const SizedBox(height: 16),
 
@@ -415,13 +417,14 @@ class __AddressFormDialogState extends State<_AddressFormDialog> {
     );
   }
 
-  // МЕТОД ДЛЯ СОЗДАНИЯ КРАСИВОГО ПОЛЯ
   Widget _buildModernField({
     required TextEditingController controller,
     required String label,
     String? hint,
     IconData? icon,
     bool isRequired = false,
+    bool isReadOnly = false, // Новый параметр
+    String? helperText, // Новый параметр
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -438,19 +441,38 @@ class __AddressFormDialogState extends State<_AddressFormDialog> {
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
-          validator: isRequired ? (v) => v!.trim().isEmpty ? '!' : null : null,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          readOnly: isReadOnly, // ПРИМЕНЯЕМ: запрет редактирования
+          validator: isRequired && !isReadOnly
+              ? (v) => v!.trim().isEmpty ? '!' : null
+              : null,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            // Если поле только для чтения, делаем текст чуть тусклее
+            color: isReadOnly ? Colors.grey.shade600 : Colors.black,
+          ),
           decoration: InputDecoration(
             hintText: hint,
+            // ПРИМЕНЯЕМ: Настройка подсказки (например, про Казань)
+            helperText: helperText,
+            helperStyle: const TextStyle(
+              color: Colors.orange,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
             hintStyle: TextStyle(
               color: Colors.grey.shade400,
               fontWeight: FontWeight.normal,
             ),
             prefixIcon: icon != null
-                ? Icon(icon, size: 20, color: Colors.black87)
+                ? Icon(
+                    icon,
+                    size: 20,
+                    color: isReadOnly ? Colors.grey : Colors.black87,
+                  )
                 : null,
             filled: true,
-            fillColor: Colors.grey.shade100,
+            fillColor: isReadOnly ? Colors.grey.shade200 : Colors.grey.shade100,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,
@@ -461,11 +483,12 @@ class __AddressFormDialogState extends State<_AddressFormDialog> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Colors.black, width: 1.5),
+              borderSide: BorderSide(
+                color: isReadOnly ? Colors.transparent : Colors.black,
+                width: 1.5,
+              ),
             ),
-            errorStyle: const TextStyle(
-              height: 0,
-            ), // Прячем текст ошибки, оставляем только красную рамку
+            errorStyle: const TextStyle(height: 0),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),

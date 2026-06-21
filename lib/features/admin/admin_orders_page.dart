@@ -16,6 +16,8 @@ class AdminOrder {
   final String status;
   final String customerName;
   final String paymentStatus;
+  final bool withFitting;
+  final double actualAmountPaid;
 
   AdminOrder({
     required this.id,
@@ -25,6 +27,8 @@ class AdminOrder {
     required this.status,
     required this.customerName,
     required this.paymentStatus,
+    required this.withFitting,
+    required this.actualAmountPaid,
   });
 
   factory AdminOrder.fromJson(Map<String, dynamic> json) {
@@ -40,6 +44,8 @@ class AdminOrder {
           ? '$firstName $lastName'
           : 'Неизвестный',
       paymentStatus: json['payment_status'] ?? 'pending',
+      withFitting: json['with_fitting'] ?? false,
+      actualAmountPaid: (json['actual_amount_paid'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }
@@ -95,6 +101,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // --- ШАПКА ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -112,35 +119,54 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                     ),
                     SizedBox(height: 5),
                     Text(
-                      'Оперативное управление продажами',
+                      'Оперативное управление продажами и примерками',
                       style: TextStyle(color: Colors.white38, fontSize: 13),
                     ),
                   ],
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _ordersFuture = _fetchOrders();
-                    });
-                  },
+                  onPressed: () =>
+                      setState(() => _ordersFuture = _fetchOrders()),
                   icon: const Icon(Icons.refresh),
                   label: const Text('ОБНОВИТЬ ДАННЫЕ'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AdminColors.card,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 18,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 30),
+
+            // --- СПИСОК ЗАКАЗОВ ---
             Expanded(
               child: FutureBuilder<List<AdminOrder>>(
                 future: _ordersFuture,
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AdminColors.accentBlue,
+                      ),
+                    );
                   }
                   final orders = snapshot.data!;
+                  if (orders.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'Заказов пока нет',
+                        style: TextStyle(color: Colors.white38),
+                      ),
+                    );
+                  }
+
                   return ListView.builder(
                     itemCount: orders.length,
                     itemBuilder: (context, index) {
@@ -150,9 +176,15 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                         symbol: '₽',
                         decimalDigits: 0,
                       );
+
+                      // Проверка на частичный выкуп
+                      final bool isPartialBuyout =
+                          order.status == 'delivered' &&
+                          order.actualAmountPaid > 0 &&
+                          order.actualAmountPaid < order.finalPrice;
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 15),
-                        padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: AdminColors.card,
                           borderRadius: BorderRadius.circular(15),
@@ -160,16 +192,28 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                             color: Colors.white.withValues(alpha: 0.05),
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            _buildOrderInfo(order),
-                            const Spacer(),
-                            _buildCustomerInfo(order),
-                            const SizedBox(width: 40),
-                            _buildPriceInfo(order, f),
-                            const SizedBox(width: 40),
-                            _buildActionButtons(order),
-                          ],
+                        child: InkWell(
+                          // Делаем всю строку кликабельной
+                          onTap: () => context.go('/admin/orders/${order.id}'),
+                          borderRadius: BorderRadius.circular(15),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                _buildOrderInfo(order), // Обновим внутри
+                                const Spacer(),
+                                _buildCustomerInfo(order),
+                                const SizedBox(width: 40),
+                                _buildPriceInfo(
+                                  order,
+                                  f,
+                                  isPartialBuyout,
+                                ), // Обновим внутри
+                                const SizedBox(width: 40),
+                                _buildActionButtons(order),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -184,55 +228,45 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
   }
 
   Widget _buildOrderInfo(AdminOrder order) {
-    return InkWell(
-      onTap: () => context.go('/admin/orders/${order.id}'),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AdminColors.sidebar,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.receipt_long,
-              color: AdminColors.accentBlue,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 15),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    '#${order.id.substring(0, 8).toUpperCase()}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    order.paymentStatus == 'succeeded'
-                        ? Icons.check_circle_rounded
-                        : Icons.pending_rounded,
-                    size: 14,
-                    color: order.paymentStatus == 'succeeded'
-                        ? Colors.greenAccent
-                        : Colors.orangeAccent,
-                  ),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'ЗАКАЗ #${order.id.substring(0, 8).toUpperCase()}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
-              Text(
-                DateFormat('dd.MM, HH:mm').format(order.createdAt.toLocal()),
-                style: const TextStyle(color: Colors.white38, fontSize: 11),
+            ),
+            if (order.withFitting) ...[
+              const SizedBox(width: 10),
+              Tooltip(
+                message: 'Заказ с примеркой',
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.checkroom,
+                    color: Colors.orange,
+                    size: 14,
+                  ),
+                ),
               ),
             ],
-          ),
-        ],
-      ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        Text(
+          DateFormat('dd.MM.yyyy HH:mm').format(order.createdAt.toLocal()),
+          style: const TextStyle(color: Colors.white38, fontSize: 12),
+        ),
+      ],
     );
   }
 
@@ -256,24 +290,52 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     );
   }
 
-  Widget _buildPriceInfo(AdminOrder order, NumberFormat f) {
+  Widget _buildPriceInfo(
+    AdminOrder order,
+    NumberFormat f,
+    bool isPartialBuyout,
+  ) {
+    // Проверяем: был ли частичный выкуп (заказ доставлен и сумма меньше исходной)
+    final bool isPartialBuyout =
+        order.status == 'delivered' &&
+        order.actualAmountPaid > 0 &&
+        order.actualAmountPaid < order.finalPrice;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        const Text(
-          'ИТОГО',
+        // Если был возврат - показываем старую цену зачеркнутой
+        if (isPartialBuyout)
+          Text(
+            f.format(order.finalPrice),
+            style: const TextStyle(
+              color: Colors.white24,
+              fontSize: 12,
+              decoration: TextDecoration.lineThrough,
+            ),
+          ),
+
+        // Показываем актуальную сумму (зеленым, если она изменилась)
+        Text(
+          isPartialBuyout
+              ? f.format(order.actualAmountPaid)
+              : f.format(order.finalPrice),
           style: TextStyle(
-            color: Colors.white24,
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
+            color: isPartialBuyout ? Colors.greenAccent : Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
           ),
         ),
+
         Text(
-          f.format(order.finalPrice),
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: 15,
+          isPartialBuyout ? 'ЧАСТИЧНЫЙ ВЫКУП' : 'СУММА ЗАКАЗА',
+          style: TextStyle(
+            color: isPartialBuyout
+                ? Colors.greenAccent.withValues(alpha: .5)
+                : Colors.white10,
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
         ),
       ],

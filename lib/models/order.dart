@@ -8,6 +8,7 @@ class OrderItem {
   final double priceAtPurchase;
   final Product product;
   final ProductVariant? variant;
+  final bool isKept;
 
   OrderItem({
     required this.id,
@@ -16,6 +17,7 @@ class OrderItem {
     required this.priceAtPurchase,
     required this.product,
     this.variant,
+    required this.isKept,
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
@@ -30,6 +32,7 @@ class OrderItem {
               json['product_variants'] as Map<String, dynamic>,
             )
           : null,
+      isKept: json['is_kept'] ?? true,
     );
   }
 }
@@ -46,9 +49,11 @@ class Order {
   final double discountAmount;
   final double finalPrice;
   final String paymentStatus;
+  final double actualAmountPaid;
   final DateTime? expiresAt;
   final DateTime? deliveredAt;
   final String? cancellationReason;
+  final bool withFitting;
 
   Order({
     required this.id,
@@ -65,6 +70,8 @@ class Order {
     this.expiresAt,
     this.deliveredAt,
     this.cancellationReason,
+    required this.withFitting,
+    required this.actualAmountPaid,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -84,6 +91,9 @@ class Order {
       discountAmount: (json['discount_amount'] as num).toDouble(),
       finalPrice: (json['final_price'] as num).toDouble(),
       paymentStatus: json['payment_status'] ?? 'pending',
+
+      actualAmountPaid: (json['actual_amount_paid'] as num?)?.toDouble() ?? 0.0,
+
       expiresAt: json['expires_at'] != null
           ? DateTime.parse(json['expires_at'])
           : null,
@@ -91,6 +101,7 @@ class Order {
           ? DateTime.parse(json['delivered_at'])
           : null,
       cancellationReason: json['cancellation_reason'] as String?,
+      withFitting: json['with_fitting'] ?? false,
     );
   }
 }

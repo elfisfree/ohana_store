@@ -129,6 +129,10 @@ class _OrdersPageState extends State<OrdersPage> {
                   symbol: '₽',
                 );
                 final dateFormatter = DateFormat('dd MMM yyyy, HH:mm', 'ru');
+                final double priceToShow =
+                    (order.status == 'delivered' && order.actualAmountPaid > 0)
+                    ? order.actualAmountPaid
+                    : order.finalPrice;
 
                 return GestureDetector(
                   onTap: () => context.push('/profile/orders/${order.id}'),
@@ -184,7 +188,7 @@ class _OrdersPageState extends State<OrdersPage> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              currencyFormatter.format(order.totalPrice),
+                              currencyFormatter.format(priceToShow),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 18,

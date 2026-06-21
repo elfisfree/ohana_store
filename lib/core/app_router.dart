@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ohana_store/features/admin/admin_dictionaries_page.dart';
+import 'package:ohana_store/features/delivery/courier_order_page.dart';
 import 'package:provider/provider.dart';
 import 'package:ohana_store/features/admin/admin_dashboard_page.dart';
 import 'package:ohana_store/features/admin/admin_orders_page.dart';
@@ -172,11 +173,13 @@ GoRouter createRouter(AuthNotifier authNotifier) {
         builder: (context, state) => const DeliveryDashboard(),
         routes: [
           GoRoute(
+            // --- УДАЛИТЕ '/delivery' И ОСТАВЬТЕ ТОЛЬКО ОТНОСИТЕЛЬНЫЙ ПУТЬ ---
             path: 'order/:id',
-            builder: (context, state) => OrderDetailPage(
-              orderId: state.pathParameters['id']!,
-              isCourier: true,
-            ),
+            // -------------------------------------------------------------
+            builder: (context, state) {
+              final orderId = state.pathParameters['id']!;
+              return CourierOrderPage(orderId: orderId);
+            },
           ),
         ],
       ),
