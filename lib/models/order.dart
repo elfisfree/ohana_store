@@ -56,6 +56,9 @@ class Order {
   final bool withFitting;
   final String paymentMethod;
 
+  final String? courierPaymentType; // 'cash' или 'card'
+  final String? courierReceiptNo;
+
   Order({
     required this.id,
     required this.createdAt,
@@ -73,6 +76,9 @@ class Order {
     this.cancellationReason,
     required this.withFitting,
     required this.actualAmountPaid,
+
+    this.courierPaymentType,
+    this.courierReceiptNo,
 
     required this.paymentMethod,
   });
@@ -106,6 +112,8 @@ class Order {
       cancellationReason: json['cancellation_reason'] as String?,
       withFitting: json['with_fitting'] ?? false,
       paymentMethod: json['payment_method'] ?? 'online',
+      courierPaymentType: json['courier_payment_type'],
+      courierReceiptNo: json['courier_receipt_no'],
     );
   }
 }

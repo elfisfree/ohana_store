@@ -31,7 +31,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
           .select('''
             *, 
             products(id, name, materials(name)), 
-            order_items(size, orders(id, final_price, status))
+            order_items!product_reviews_order_item_id_fkey(size, orders(id, final_price, status))
           ''')
           .eq('status', 'pending')
           .order('created_at', ascending: true);

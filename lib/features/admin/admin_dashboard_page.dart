@@ -173,8 +173,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 40),
-                          _buildRecentActions(f),
                         ],
                       ),
                     ),
@@ -335,124 +333,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildRecentActions(NumberFormat f) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        color: AdminColors.card,
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'ПОСЛЕДНИЕ СОБЫТИЯ',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Table(
-            columnWidths: const {
-              0: FlexColumnWidth(2),
-              1: FlexColumnWidth(1),
-              2: FlexColumnWidth(1),
-            },
-            children: [
-              const TableRow(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      'СОБЫТИЕ',
-                      style: TextStyle(
-                        color: AdminColors.accentBlue,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      'ДАТА',
-                      style: TextStyle(
-                        color: AdminColors.accentBlue,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      'СТАТУС',
-                      style: TextStyle(
-                        color: AdminColors.accentBlue,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              _tableRow(
-                'Добавлен новый товар Nike',
-                'Сегодня, 14:20',
-                'Выполнено',
-              ),
-              _tableRow(
-                'Получен новый заказ #DE5962',
-                'Вчера, 23:45',
-                'Ожидает',
-              ),
-              _tableRow(
-                'Промокод SPRING10 активирован',
-                '04.05.2024',
-                'Выполнено',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  TableRow _tableRow(String act, String date, String status) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          child: Text(
-            act,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          child: Text(
-            date,
-            style: const TextStyle(color: Colors.white38, fontSize: 12),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          child: Text(
-            status,
-            style: const TextStyle(
-              color: AdminColors.accentBlue,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

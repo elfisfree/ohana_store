@@ -27,6 +27,7 @@ class AppliedPromocode {
 
 enum DeliveryMethod { courier, pickup }
 
+// ignore: constant_identifier_names
 enum PaymentMethod { online, on_delivery }
 
 class CheckoutPage extends StatefulWidget {
@@ -504,7 +505,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             ),
                           ),
                           subtitle: const Text(
-                            'Можно вернуть часть товара курьеру',
+                            'Примерка товаров перед покупкой',
                             style: TextStyle(fontSize: 11),
                           ),
                           value: _withFitting,
@@ -528,7 +529,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 'Картой онлайн',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
-                              subtitle: const Text('Тестовая оплата ЮKassa'),
+                              subtitle: const Text('Тестовая оплата'),
                               value: PaymentMethod.online, // Значение из Enum
                               groupValue: _paymentMethod,
                               activeColor: Colors.black,

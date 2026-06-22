@@ -55,6 +55,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   Timer? _countdownTimer;
   Duration _timeLeft = Duration.zero;
 
+  String _adminPaymentType = 'card'; // По умолчанию карта
+  final _adminReceiptController = TextEditingController();
+
+  Map<String, bool> _keptItems = {};
+  bool _isInitialized = false;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +69,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   @override
   void dispose() {
+    _adminReceiptController.dispose();
     _countdownTimer?.cancel();
     super.dispose();
   }
@@ -331,6 +338,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         return 'ЗАЯВКА НА ВОЗВРАТ';
       case 'returned':
         return 'ВОЗВРАЩЕНО';
+      case 'ready_for_pickup':
+        return 'ГОТОВ К ВЫДАЧЕ';
       default:
         return status.toUpperCase();
     }
@@ -350,9 +359,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isAnyStaff =
-        widget.isAdmin || widget.isCollector || widget.isCourier;
-
     final bool useDark = widget.isAdmin;
 
     final Color bgColor = useDark ? AdminColors.background : Colors.grey[50]!;
@@ -395,6 +401,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           final reviewedIds = snapshot.data!.$2;
           final history = snapshot.data!.$3;
 
+          if (!_isInitialized) {
+            for (var item in order.items) {
+              _keptItems[item.id] = true; // По умолчанию считаем, что берут всё
+            }
+            _isInitialized = true;
+          }
+
           final bool isAnyStaff =
               widget.isAdmin || widget.isCollector || widget.isCourier;
 
@@ -434,8 +447,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       order.cancellationReason!,
                       isAnyStaff,
                     ),
-                  if (widget.isAdmin) _buildAdminControls(order.status),
-                  if (widget.isCollector) _buildCollectorButtons(order.status),
+                  if (widget.isAdmin) _buildAdminControls(order),
+                  if (widget.isCollector) _buildCollectorButtons(order),
                   if (widget.isCourier) _buildCourierButtons(order.status),
                   if (!isAnyStaff)
                     _buildBuyerActions(order, isReturnPeriodActive),
@@ -580,6 +593,43 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             sub,
           ),
 
+          if (order.paymentStatus == 'succeeded') ...[
+            const Divider(height: 30, color: Colors.white10),
+            Text(
+              'ДАННЫЕ ПЛАТЕЖА',
+              style: TextStyle(
+                color: sub,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _infoLine(
+              'СПОСОБ',
+              order.courierPaymentType == 'card'
+                  ? 'БЕЗНАЛИЧНЫЙ (КАРТА)'
+                  : 'НАЛИЧНЫЕ',
+              text,
+              sub,
+            ),
+            _infoLine(
+              'ЧЕК №',
+              order.courierReceiptNo ?? 'Оплата онлайн',
+              text,
+              sub,
+            ),
+            _infoLine(
+              'ДАТА ОПЛАТЫ',
+              order.deliveredAt != null
+                  ? DateFormat(
+                      'dd.MM.yyyy HH:mm',
+                    ).format(order.deliveredAt!.toLocal())
+                  : 'Не зафиксирована',
+              text,
+              sub,
+            ),
+          ],
+
           const Divider(height: 30, color: Colors.black12),
 
           Text(
@@ -605,60 +655,277 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Widget _buildAdminControls(String status) {
-    if (status != 'pending' && status != 'processing' && status != 'shipped') {
+  Widget _buildAdminControls(Order order) {
+    final status = order.status;
+    final isUnpaid = order.paymentStatus == 'pending';
+
+    if (status != 'pending' &&
+        status != 'processing' &&
+        status != 'shipped' &&
+        status != 'ready_for_pickup') {
       return const SizedBox.shrink();
     }
+
+    double currentTotal = order.deliveryCost;
+    if (status == 'ready_for_pickup') {
+      _keptItems.forEach((id, kept) {
+        if (kept) {
+          final item = order.items.firstWhere((i) => i.id == id);
+          currentTotal += (item.priceAtPurchase * item.quantity);
+        }
+      });
+    }
+
     return Container(
       margin: const EdgeInsets.only(top: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AdminColors.card,
         borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: AdminColors.accentBlue.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         children: [
+          if (status == 'ready_for_pickup') ...[
+            const Text(
+              'ОФОРМЛЕНИЕ ВЫДАЧИ (ПРИМЕРКА)',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 15),
+            if (isUnpaid) ...[
+              Row(
+                children: [
+                  _adminPayTypeButton('КАРТА', 'card', Icons.credit_card),
+                  const SizedBox(width: 10),
+                  _adminPayTypeButton(
+                    'НАЛИЧНЫЕ',
+                    'cash',
+                    Icons.payments_outlined,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: _adminReceiptController,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'НОМЕР ЧЕКА / ТРАНЗАКЦИИ',
+                  labelStyle: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 12,
+                  ),
+                  filled: true,
+                  fillColor: AdminColors.sidebar,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 15,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+            ElevatedButton.icon(
+              onPressed: () {
+                // Валидация перед выдачей
+                if (isUnpaid && _adminReceiptController.text.trim().isEmpty) {
+                  AppNotifications.showError(
+                    context,
+                    'Введите номер чека для закрытия заказа',
+                  );
+                  return;
+                }
+                _issuePickupOrder(order, currentTotal);
+              },
+              icon: Icon(
+                isUnpaid ? Icons.payments_outlined : Icons.handshake_outlined,
+              ),
+              label: Text(
+                isUnpaid
+                    ? 'ПРИНЯТЬ ${currentTotal.toInt()} ₽ И ВЫДАТЬ'
+                    : 'ВЫДАТЬ ВЫБРАННЫЕ ТОВАРЫ',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isUnpaid
+                    ? Colors.orange.shade800
+                    : Colors.green,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 55),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+
           if (status == 'pending')
             ElevatedButton(
               onPressed: () => _updateOrderStatus('processing'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AdminColors.accentBlue,
                 foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 50),
+                minimumSize: const Size(double.infinity, 55),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('ОТПРАВИТЬ НА СБОРКУ'),
+              child: const Text(
+                'ОТПРАВИТЬ НА СБОРКУ',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
-          const SizedBox(height: 10),
+
+          const SizedBox(height: 12),
+
           OutlinedButton(
             onPressed: _confirmCancellation,
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.redAccent,
               side: const BorderSide(color: Colors.redAccent),
               minimumSize: const Size(double.infinity, 45),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text('ОТМЕНИТЬ ЗАКАЗ'),
+            child: const Text(
+              'ОТМЕНИТЬ ЗАКАЗ',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCollectorButtons(String status) {
+  Widget _adminPayTypeButton(String label, String value, IconData icon) {
+    bool isSelected = _adminPaymentType == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _adminPaymentType = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AdminColors.accentBlue : AdminColors.sidebar,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? Colors.white24 : Colors.transparent,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : Colors.white38,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white38,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _issuePickupOrder(Order order, double finalAmount) async {
+    if (order.paymentStatus == 'pending' &&
+        _adminReceiptController.text.trim().isEmpty) {
+      AppNotifications.showError(context, 'Введите номер чека для отчетности');
+      return;
+    }
+
+    try {
+      for (var entry in _keptItems.entries) {
+        await supabase
+            .from('order_items')
+            .update({'is_kept': entry.value})
+            .eq('id', entry.key);
+      }
+      await supabase
+          .from('orders')
+          .update({
+            'status': 'delivered',
+            'payment_status': 'succeeded',
+            'actual_amount_paid': finalAmount,
+            'courier_payment_type':
+                _adminPaymentType, // Используем те же поля, что и для курьера
+            'courier_receipt_no': _adminReceiptController.text.trim(),
+            'delivered_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', widget.orderId);
+
+      AppNotifications.showSuccess(
+        context,
+        'Заказ выдан. Сумма: $finalAmount ₽',
+      );
+      setState(() {
+        _isInitialized = false;
+        _orderDataFuture = _fetchAllOrderData();
+      });
+    } catch (e) {
+      AppNotifications.showError(context, 'Ошибка: $e');
+    }
+  }
+
+  Widget _buildCollectorButtons(Order order) {
+    final status = order.status;
+    final bool isPickup = order.deliveryMethod == 'pickup';
+
     if (status == 'pending' || status == 'processing') {
       return Column(
         children: [
           ElevatedButton(
-            onPressed: () => _updateOrderStatus(
-              status == 'pending' ? 'processing' : 'shipped',
-            ),
+            onPressed: () {
+              if (status == 'pending') {
+                _updateOrderStatus('processing');
+              } else {
+                // Если самовывоз - ставим готовность к выдаче, если нет - передаем курьеру
+                _updateOrderStatus(isPickup ? 'ready_for_pickup' : 'shipped');
+              }
+            },
             style: ElevatedButton.styleFrom(
-              backgroundColor: status == 'pending' ? Colors.blue : Colors.green,
+              // Динамический цвет: Синий для начала, Фиолетовый для выдачи, Зеленый для курьера
+              backgroundColor: status == 'pending'
+                  ? Colors.blue
+                  : (isPickup ? Colors.purple : Colors.green),
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 55),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
             ),
-            child: Text(status == 'pending' ? 'НАЧАТЬ СБОРКУ' : 'СОБРАНО'),
+            child: Text(
+              status == 'pending'
+                  ? 'НАЧАТЬ СБОРКУ'
+                  : (isPickup
+                        ? 'ГОТОВ К ВЫДАЧЕ'
+                        : 'СОБРАНО / ПЕРЕДАТЬ КУРЬЕРУ'),
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           TextButton.icon(
             onPressed: _showStaffCancelDialog,
             icon: const Icon(
@@ -668,7 +935,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ),
             label: const Text(
               'ОТМЕНИТЬ (БРАК / НЕТ ТОВАРА)',
-              style: TextStyle(color: Colors.redAccent),
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -884,10 +1154,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                             'product_id': item.product.id,
                           },
                         );
-                        if (res == true) {
-                          setState(
-                            () => _orderDataFuture = _fetchAllOrderData(),
-                          );
+                        if (res == true && mounted) {
+                          setState(() {
+                            _orderDataFuture = _fetchAllOrderData();
+                          });
                         }
                       },
                       child: const Text(
@@ -909,6 +1179,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 decoration: isReturned ? TextDecoration.lineThrough : null,
               ),
             ),
+            if (widget.isAdmin && status == 'ready_for_pickup')
+              Switch(
+                value: _keptItems[item.id] ?? true,
+                activeColor: AdminColors.accentBlue,
+                onChanged: (val) {
+                  setState(() => _keptItems[item.id] = val);
+                },
+              ),
           ],
         ),
       ),
