@@ -164,7 +164,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final Color textColor = useDark ? AdminColors.textPrimary : Colors.black;
     final Color inputBg = useDark
         ? AdminColors.sidebar
-        : AdminColors.textSecondary!;
+        : AdminColors.textSecondary;
 
     showDialog(
       context: context,

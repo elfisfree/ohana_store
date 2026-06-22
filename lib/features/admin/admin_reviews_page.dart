@@ -294,10 +294,13 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                                         ),
                                         label: const Text('ОДОБРИТЬ ОТЗЫВ'),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: AdminColors
-                                              .textPrimary
-                                              .withValues(alpha: 0.05),
-                                          foregroundColor: Colors.greenAccent,
+                                          backgroundColor: Color(0xFF673AB7),
+                                          foregroundColor: const Color.fromARGB(
+                                            255,
+                                            255,
+                                            255,
+                                            255,
+                                          ),
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 25,
                                             vertical: 15,

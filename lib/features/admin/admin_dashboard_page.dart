@@ -1,4 +1,6 @@
 // lib/features/admin/admin_dashboard_page.dart
+// ignore_for_file: unused_local_variable
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -158,20 +160,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 1,
                                 Colors.redAccent,
                                 Icons.hourglass_empty_rounded,
-                              ),
-                              _statCard(
-                                'ВЫРУЧКА',
-                                f.format(s.totalRevenue),
-                                1,
-                                Colors.greenAccent,
-                                Icons.payments_outlined,
-                              ),
-                              _statCard(
-                                'СРЕДНИЙ ЧЕК',
-                                f.format(s.avgCheck),
-                                1,
-                                Colors.purpleAccent,
-                                Icons.analytics_outlined,
                               ),
                             ],
                           ),

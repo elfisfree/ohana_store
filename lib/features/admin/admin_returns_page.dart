@@ -245,7 +245,6 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Кнопка ОДОБРИТЬ
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
