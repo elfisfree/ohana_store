@@ -3,6 +3,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ohana_store/core/admin_theme.dart';
 import 'package:ohana_store/core/utils/app_notifications.dart';
@@ -160,8 +161,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final controller = TextEditingController();
     final bool useDark = widget.isAdmin;
     final Color dialogBg = useDark ? AdminColors.card : Colors.white;
-    final Color textColor = useDark ? Colors.white : Colors.black;
-    final Color inputBg = useDark ? AdminColors.sidebar : Colors.grey[100]!;
+    final Color textColor = useDark ? AdminColors.textPrimary : Colors.black;
+    final Color inputBg = useDark
+        ? AdminColors.sidebar
+        : AdminColors.textSecondary!;
 
     showDialog(
       context: context,
@@ -183,7 +186,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           style: TextStyle(color: textColor),
           decoration: InputDecoration(
             hintText: 'Напр: Брак, нет в наличии...',
-            hintStyle: TextStyle(color: useDark ? Colors.white24 : Colors.grey),
+            hintStyle: TextStyle(
+              color: useDark ? AdminColors.textSecondary : Colors.grey,
+            ),
             filled: true,
             fillColor: inputBg,
             border: OutlineInputBorder(
@@ -202,7 +207,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             child: Text(
               'НАЗАД',
               style: TextStyle(
-                color: useDark ? Colors.white60 : Colors.grey[600],
+                color: useDark ? AdminColors.textSecondary : Colors.grey[600],
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -265,7 +270,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         backgroundColor:
             (widget.isAdmin || widget.isCollector || widget.isCourier)
             ? AdminColors.card
-            : Colors.white,
+            : AdminColors.textPrimary,
         title: Text(
           'ОТМЕНА ЗАКАЗА',
           style: TextStyle(
@@ -384,13 +389,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
     final Color bgColor = useDark ? AdminColors.background : Colors.grey[50]!;
     final Color cardColor = widget.isAdmin ? AdminColors.card : Colors.white;
-    final Color textColor = widget.isAdmin ? Colors.white : Colors.black;
+    final Color textColor = widget.isAdmin ? Colors.black : Colors.black;
     final Color subTextColor = widget.isAdmin
-        ? Colors.white38
+        ? AdminColors.textSecondary
         : Colors.grey[600]!;
     final Color dividerColor = widget.isAdmin
-        ? Colors.white10
-        : Colors.grey[200]!;
+        ? AdminColors.textSecondary
+        : Colors.black;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -712,7 +717,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             const Text(
               'ОФОРМЛЕНИЕ ВЫДАЧИ (ПРИМЕРКА)',
               style: TextStyle(
-                color: Colors.white54,
+                color: AdminColors.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
@@ -734,11 +739,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               const SizedBox(height: 15),
               TextField(
                 controller: _adminReceiptController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(
+                  color: AdminColors.textPrimary,
+                  fontSize: 14,
+                ),
                 decoration: InputDecoration(
                   labelText: 'НОМЕР ЧЕКА / ТРАНЗАКЦИИ',
                   labelStyle: const TextStyle(
-                    color: Colors.white38,
+                    color: AdminColors.textSecondary,
                     fontSize: 12,
                   ),
                   filled: true,
@@ -780,7 +788,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 backgroundColor: isUnpaid
                     ? Colors.orange.shade800
                     : Colors.green,
-                foregroundColor: Colors.white,
+                foregroundColor: AdminColors.textPrimary,
                 minimumSize: const Size(double.infinity, 55),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -839,7 +847,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             color: isSelected ? AdminColors.accentPurple : AdminColors.sidebar,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? Colors.white24 : Colors.transparent,
+              color: isSelected
+                  ? AdminColors.textSecondary
+                  : Colors.transparent,
             ),
           ),
           child: Row(
@@ -847,14 +857,18 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             children: [
               Icon(
                 icon,
-                color: isSelected ? Colors.white : Colors.white38,
+                color: isSelected
+                    ? AdminColors.textPrimary
+                    : AdminColors.textSecondary,
                 size: 16,
               ),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.white38,
+                  color: isSelected
+                      ? AdminColors.textPrimary
+                      : AdminColors.textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
@@ -867,7 +881,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Future<void> _issuePickupOrder(Order order, double _) async {
-    // 1. Если оплата при получении, проверяем номер чека
     if (order.paymentStatus == 'pending' &&
         _adminReceiptController.text.trim().isEmpty) {
       AppNotifications.showError(context, 'Введите номер чека для отчетности');
@@ -875,28 +888,16 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
 
     try {
-      // 2. РАССЧИТЫВАЕМ ИТОГОВУЮ СУММУ ЗАНОВО (по количеству штук)
-      // Берем только реально оставленное количество из нашей карты _itemsQuantities
       double totalForKeptItems = 0;
-
-      // Проходим по всем товарам в заказе
       for (var item in order.items) {
-        // Достаем из карты количество, которое админ оставил в списке
-        // Если в карте пусто, берем исходное количество из заказа
         int keptCount = _itemsQuantities[item.id] ?? item.quantity;
         totalForKeptItems += (item.priceAtPurchase * keptCount);
       }
-
-      // Финальная сумма = Товары + Доставка (хотя при самовывозе она обычно 0)
       double finalSumToPay = totalForKeptItems + order.deliveryCost;
-
-      // 3. ОБНОВЛЯЕМ КОЛИЧЕСТВО В БАЗЕ ДАННЫХ
       for (var entry in _itemsQuantities.entries) {
         await supabase
             .from('order_items')
-            .update({
-              'quantity_kept': entry.value,
-            }) // Теперь пишем ЧИСЛО, а не bool
+            .update({'quantity_kept': entry.value})
             .eq('id', entry.key);
       }
 
@@ -906,15 +907,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           .update({
             'status': 'delivered',
             'payment_status': 'succeeded',
-            'actual_amount_paid': finalSumToPay, // Отправляем ПРАВИЛЬНУЮ сумму
+            'actual_amount_paid': finalSumToPay,
             'courier_payment_type': _adminPaymentType,
             'courier_receipt_no': _adminReceiptController.text.trim(),
             'delivered_at': DateTime.now().toIso8601String(),
             'paid_at': DateTime.now().toIso8601String(),
           })
           .eq('id', widget.orderId);
-
-      // 5. УВЕДОМЛЕНИЕ И ОБНОВЛЕНИЕ
       if (mounted) {
         AppNotifications.showSuccess(
           context,
@@ -922,8 +921,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         );
 
         setState(() {
-          _isInitialized =
-              false; // Сбрасываем флаг, чтобы при следующей загрузке данные обновились
+          _isInitialized = false;
           _adminReceiptController.clear();
           _orderDataFuture = _fetchAllOrderData();
         });
@@ -948,13 +946,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               if (status == 'pending') {
                 _updateOrderStatus('processing');
               } else {
-                // Если самовывоз - ставим готовность к выдаче, если нет - передаем курьеру
                 _updateOrderStatus(isPickup ? 'ready_for_pickup' : 'shipped');
               }
             },
 
             style: ElevatedButton.styleFrom(
-              // Динамический цвет: Синий для начала, Фиолетовый для выдачи, Зеленый для курьера
               backgroundColor: status == 'pending'
                   ? Colors.blue
                   : (isPickup ? Colors.purple : Colors.green),
@@ -1043,7 +1039,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             child: ElevatedButton(
               onPressed: _showReturnDialog,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: Color(0xFF673AB7),
                 foregroundColor: Colors.white,
               ),
               child: const Text('ОФОРМИТЬ ВОЗВРАТ (14 ДНЕЙ)'),
@@ -1092,7 +1088,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       Container(
                         width: 2,
                         height: 25,
-                        color: dark ? Colors.white10 : Colors.grey.shade200,
+                        color: dark
+                            ? AdminColors.textSecondary
+                            : AdminColors.textSecondary,
                       ),
                   ],
                 ),
@@ -1135,6 +1133,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     Color sub,
     NumberFormat f,
   ) {
+    final bool canReview =
+        !widget.isAdmin &&
+        !widget.isCollector &&
+        !widget.isCourier &&
+        orderStatus == 'delivered' &&
+        !reviewedIds.contains(item.id) &&
+        item.quantityKept > 0;
+
     final bool isReturnedFull = item.quantityKept == 0;
     final bool isPartial =
         item.quantityKept > 0 && item.quantityKept < item.quantity;
@@ -1218,11 +1224,40 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                           color: isReturnedFull
                               ? Colors.red
                               : AdminColors.accentPurple,
-                          fontSize: 10,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
+                    if (canReview)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 0),
+                        child: InkWell(
+                          onTap: () async {
+                            final res = await context.push(
+                              '/add-review',
+                              extra: {
+                                'order_item_id': item.id,
+                                'product_id': item.product.id,
+                              },
+                            );
+                            if (res == true) {
+                              setState(() {
+                                _orderDataFuture = _fetchAllOrderData();
+                              });
+                            }
+                          },
+                          child: const Text(
+                            '    ОСТАВИТЬ ОТЗЫВ',
+                            style: TextStyle(
+                              color: Color(0xFF673AB7), // Твой фиолетовый
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -1268,7 +1303,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       ),
       child: Column(
         children: [
-          // 1. Изначальный расчет (как планировалось)
           _summaryRow(
             'СУММА ЗАКАЗА',
             f.format(order.totalPrice),
@@ -1287,7 +1321,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
           if (isPriceChanged) ...[
             const Divider(height: 30, color: Colors.black12),
-            // 2. Фактический расчет (после примерки)
             const Text(
               'ФАКТИЧЕСКИЙ РАСЧЕТ',
               style: TextStyle(
@@ -1297,8 +1330,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
             ),
             const SizedBox(height: 10),
-
-            // Показываем реальную скидку на выкупленные вещи
             if (actualDiscount > 0)
               _summaryRow(
                 'ИТОГОВАЯ СКИДКА',
@@ -1326,7 +1357,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  // Вспомогательный метод для строк в чеке
   Widget _summaryRow(
     String label,
     String value,
@@ -1342,7 +1372,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           Text(
             label,
             style: const TextStyle(
-              color: Colors.grey,
+              color: AdminColors.textSecondary,
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
