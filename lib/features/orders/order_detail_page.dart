@@ -76,6 +76,24 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     super.dispose();
   }
 
+  double _calculateActualDiscount(Order order) {
+    if (order.promoPercentage == null) return 0.0;
+
+    double eligibleSubtotal = 0.0;
+    for (var item in order.items) {
+      // Считаем скидку только если товар выкуплен (quantityKept > 0)
+      // и если тип товара подходит под промокод
+      bool isEligible =
+          order.promoTypeIds.isEmpty ||
+          order.promoTypeIds.contains(item.product.productType?.id);
+
+      if (isEligible) {
+        eligibleSubtotal += (item.priceAtPurchase * item.quantityKept);
+      }
+    }
+    return eligibleSubtotal * (order.promoPercentage! / 100);
+  }
+
   Future<(Order, Set<String>, List<dynamic>)> _fetchAllOrderData() async {
     try {
       final orderItemsResponse = await supabase
@@ -1231,9 +1249,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildTotalCard(Order order, bool dark, Color text, NumberFormat f) {
+    final bool isDelivered = order.status == 'delivered';
+    final double actualDiscount = _calculateActualDiscount(order);
+
+    // Был ли частичный выкуп?
     final bool isPriceChanged =
-        order.status == 'delivered' &&
-        (order.actualAmountPaid - order.finalPrice).abs() > 1.0;
+        isDelivered && (order.actualAmountPaid - order.finalPrice).abs() > 1.0;
 
     return Container(
       padding: const EdgeInsets.all(25),
@@ -1244,55 +1265,94 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       ),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isPriceChanged ? 'СУММА ЗАКАЗА (БЫЛО)' : 'ИТОГО К ОПЛАТЕ',
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-              Text(
-                f.format(order.finalPrice),
-                style: TextStyle(
-                  color: text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  decoration: isPriceChanged
-                      ? TextDecoration.lineThrough
-                      : null,
-                ),
-              ),
-            ],
+          // 1. Изначальный расчет (как планировалось)
+          _summaryRow(
+            'СУММА ЗАКАЗА',
+            f.format(order.totalPrice),
+            text,
+            isLineThrough: isPriceChanged,
           ),
+          if (order.discountAmount > 0)
+            _summaryRow(
+              'СКИДКА ПО АКЦИИ',
+              '-${f.format(order.discountAmount)}',
+              Colors.redAccent,
+              isLineThrough: isPriceChanged,
+            ),
+
+          _summaryRow('ДОСТАВКА', f.format(order.deliveryCost), text),
 
           if (isPriceChanged) ...[
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'ФАКТИЧЕСКИ ОПЛАЧЕНО',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                  ),
-                ),
-                Text(
-                  f.format(order.actualAmountPaid),
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
+            const Divider(height: 30, color: Colors.black12),
+            // 2. Фактический расчет (после примерки)
+            const Text(
+              'ФАКТИЧЕСКИЙ РАСЧЕТ',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Показываем реальную скидку на выкупленные вещи
+            if (actualDiscount > 0)
+              _summaryRow(
+                'ИТОГОВАЯ СКИДКА',
+                '-${f.format(actualDiscount)}',
+                Colors.green,
+              ),
+
+            _summaryRow(
+              'ИТОГО ОПЛАЧЕНО',
+              f.format(order.actualAmountPaid),
+              Colors.green,
+              isBold: true,
+            ),
+          ] else ...[
+            const Divider(height: 30, color: Colors.black12),
+            _summaryRow(
+              'ИТОГО К ОПЛАТЕ',
+              f.format(order.finalPrice),
+              text,
+              isBold: true,
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  // Вспомогательный метод для строк в чеке
+  Widget _summaryRow(
+    String label,
+    String value,
+    Color color, {
+    bool isBold = false,
+    bool isLineThrough = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: isBold ? FontWeight.normal : FontWeight.bold,
+              fontSize: isBold ? 20 : 14,
+              decoration: isLineThrough ? TextDecoration.lineThrough : null,
+            ),
+          ),
         ],
       ),
     );

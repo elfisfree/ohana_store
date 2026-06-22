@@ -34,10 +34,15 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
   Future<Order> _fetchOrder() async {
     try {
       final response = await supabase
-          .from('orders')
-          .select(
-            '*, order_items(*, product_variants(*), products(*, brands(*)))',
-          )
+          .from('orders_with_details') // ГЛАВНОЕ ИСПРАВЛЕНИЕ
+          .select('''
+            *, 
+            order_items (
+              *, 
+              products (*, brands(*), product_types(*)), 
+              product_variants (*)
+            )
+          ''')
           .eq('id', widget.orderId)
           .single();
 
@@ -128,20 +133,47 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
   }
 
   Future<void> _completeDelivery(Order order) async {
+    // 1. Валидация чека (только если не было онлайн-оплаты)
     if (order.paymentStatus != 'succeeded' && _receiptController.text.isEmpty) {
       AppNotifications.showError(context, 'Введите номер чека');
       return;
     }
+
     setState(() => _isSaving = true);
 
     try {
-      double totalForKeptItems = 0;
+      double totalForKeptItems = 0; // Сумма выкупленных товаров без скидки
+      double totalDiscountForKeptItems =
+          0; // Сумма скидки на выкупленные товары
 
+      // 2. УМНЫЙ РАСЧЕТ СУММЫ С УЧЕТОМ ПРОМОКОДА
       _itemsQuantities.forEach((itemId, keptQty) {
-        final item = order.items.firstWhere((i) => i.id == itemId);
-        totalForKeptItems += (item.priceAtPurchase * keptQty);
+        if (keptQty > 0) {
+          final item = order.items.firstWhere((i) => i.id == itemId);
+          double itemSubtotal = item.priceAtPurchase * keptQty;
+
+          // Проверяем: действует ли промокод на этот конкретный товар?
+          // Условие: промокод существует И (список типов пуст [значит на всё] ИЛИ тип товара в списке разрешенных)
+          bool isPromoApplicable =
+              order.promoPercentage != null &&
+              (order.promoTypeIds.isEmpty ||
+                  order.promoTypeIds.contains(item.product.productType?.id));
+
+          if (isPromoApplicable) {
+            // Рассчитываем скидку только для этого количества и этого товара
+            totalDiscountForKeptItems +=
+                itemSubtotal * (order.promoPercentage! / 100);
+          }
+
+          totalForKeptItems += itemSubtotal;
+        }
       });
-      double finalSumToPay = totalForKeptItems + order.deliveryCost;
+
+      // Итоговая сумма = (Товары) - (Скидка на них) + (Доставка)
+      double finalSumToPay =
+          totalForKeptItems - totalDiscountForKeptItems + order.deliveryCost;
+
+      // 3. Обновляем количества в базе (сколько штук выкуплено)
       for (var entry in _itemsQuantities.entries) {
         await supabase
             .from('order_items')
@@ -149,27 +181,33 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
             .eq('id', entry.key);
       }
 
+      // 4. Завершаем заказ в базе
       await supabase
           .from('orders')
           .update({
             'status': 'delivered',
             'payment_status': 'succeeded',
-            'actual_amount_paid': finalSumToPay,
+            'actual_amount_paid': finalSumToPay, // Отправляем ЧЕСТНУЮ сумму
             'courier_payment_type': _paymentType,
             'courier_receipt_no': _receiptController.text.trim(),
             'delivered_at': DateTime.now().toIso8601String(),
+            'paid_at': DateTime.now()
+                .toIso8601String(), // Фиксируем время оплаты
           })
           .eq('id', widget.orderId);
+
+      // SQL-Триггер в Supabase сам увидит разницу (quantity - quantity_kept)
+      // и вернет невыкупленные пары на склад.
 
       if (mounted) {
         AppNotifications.showSuccess(
           context,
-          'Заказ завершен на сумму $finalSumToPay ₽',
+          'Заказ завершен. Принято: ${finalSumToPay.toInt()} ₽',
         );
-        Navigator.pop(context, true);
+        Navigator.pop(context, true); // Возвращаемся в список
       }
     } catch (e) {
-      AppNotifications.showError(context, 'Ошибка: $e');
+      if (mounted) AppNotifications.showError(context, 'Ошибка сохранения: $e');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -203,13 +241,31 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
           }
           final order = snapshot.data!;
 
-          double currentTotal = order.deliveryCost;
+          double totalForKeptItems = 0;
+          double totalDiscountAmount = 0;
           _itemsQuantities.forEach((itemId, keptQty) {
-            // Находим товар в списке по его ID
-            final item = order.items.firstWhere((i) => i.id == itemId);
-            // Прибавляем к итогу: цена * реально выкупленное кол-во
-            currentTotal += (item.priceAtPurchase * keptQty);
+            if (keptQty > 0) {
+              final item = order.items.firstWhere((i) => i.id == itemId);
+              double itemSubtotal = item.priceAtPurchase * keptQty;
+
+              // Проверяем, действует ли промокод на этот товар
+              bool isPromoApplicable =
+                  order.promoPercentage != null &&
+                  (order.promoTypeIds.isEmpty ||
+                      order.promoTypeIds.contains(
+                        item.product.productType?.id,
+                      ));
+
+              if (isPromoApplicable) {
+                totalDiscountAmount +=
+                    itemSubtotal * (order.promoPercentage! / 100);
+              }
+
+              totalForKeptItems += itemSubtotal;
+            }
           });
+          double currentTotal =
+              totalForKeptItems - totalDiscountAmount + order.deliveryCost;
 
           return Column(
             children: [
@@ -289,19 +345,6 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
                         ],
                       ),
                       const SizedBox(height: 15),
-
-                      TextField(
-                        controller: _receiptController,
-                        decoration: InputDecoration(
-                          labelText: 'НОМЕР ЧЕКА / ТРАНЗАКЦИИ',
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
                     ] else ...[
                       // Если оплачено онлайн, показываем просто информационную плашку
                       Container(

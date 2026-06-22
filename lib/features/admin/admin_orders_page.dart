@@ -272,14 +272,6 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
           DateFormat('dd.MM.yyyy HH:mm').format(order.createdAt.toLocal()),
           style: const TextStyle(color: Colors.white38, fontSize: 12),
         ),
-        Text(
-          '${order.totalItems} ТОВАР(ОВ)',
-          style: const TextStyle(
-            color: AdminColors.accentBlue,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
       ],
     );
   }

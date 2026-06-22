@@ -57,6 +57,9 @@ class Order {
   final String paymentMethod;
   final DateTime? paidAt;
 
+  final double? promoPercentage; // Процент скидки
+  final List<String> promoTypeIds;
+
   final String? courierPaymentType; // 'cash' или 'card'
   final String? courierReceiptNo;
 
@@ -77,6 +80,9 @@ class Order {
     this.cancellationReason,
     required this.withFitting,
     required this.actualAmountPaid,
+
+    this.promoPercentage,
+    this.promoTypeIds = const [],
 
     this.courierPaymentType,
     this.courierReceiptNo,
@@ -117,6 +123,8 @@ class Order {
       courierPaymentType: json['courier_payment_type'],
       courierReceiptNo: json['courier_receipt_no'],
       paidAt: json['paid_at'] != null ? DateTime.parse(json['paid_at']) : null,
+      promoPercentage: (json['discount_percentage'] as num?)?.toDouble(),
+      promoTypeIds: List<String>.from(json['applicable_type_ids'] ?? []),
     );
   }
 }
