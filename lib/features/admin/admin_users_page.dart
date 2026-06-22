@@ -27,9 +27,8 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
 
   // Параметры фильтров
   String _searchQuery = '';
-  String _selectedRoleFilter = 'all'; // Фильтр для отображения
-  final String _sortBy = 'created_at'; // Сортировка
-
+  String _selectedRoleFilter = 'all';
+  final String _sortBy = 'created_at';
   @override
   void initState() {
     super.initState();
@@ -51,7 +50,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     super.dispose();
   }
 
-  // --- ЗАГРУЗКА ДАННЫХ С УЧЕТОМ ФИЛЬТРОВ ---
   Future<void> _fetchUsers({bool isRefresh = true}) async {
     if (isRefresh) {
       setState(() {
@@ -64,13 +62,9 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
 
     try {
       var query = supabase.from('admin_users_view').select();
-
-      // Применяем фильтр по роли на уровне базы данных (эффективнее)
       if (_selectedRoleFilter != 'all') {
         query = query.eq('role', _selectedRoleFilter);
       }
-
-      // Применяем поиск, если он есть
       if (_searchQuery.isNotEmpty) {
         query = query.or(
           'first_name.ilike.%$_searchQuery%,last_name.ilike.%$_searchQuery%,email.ilike.%$_searchQuery%',
@@ -109,8 +103,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     _fetchUsers(isRefresh: false);
   }
 
-  // --- ЛОГИКА ИЗМЕНЕНИЯ ДАННЫХ ---
-
   Future<void> _changeRole(AdminUser user, String newRole) async {
     try {
       await supabase
@@ -121,7 +113,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         context,
         'Роль ${user.firstName} изменена на $newRole',
       );
-      _fetchUsers(); // Перезагружаем список
+      _fetchUsers();
     } catch (e) {
       AppNotifications.showError(context, 'Ошибка: $e');
     }
@@ -134,7 +126,10 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         backgroundColor: AdminColors.card,
         title: const Text(
           'УДАЛЕНИЕ',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: AdminColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text('Удалить аккаунт ${user.email}?'),
         actions: [
@@ -184,7 +179,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     const Text(
                       'УПРАВЛЕНИЕ КЛИЕНТАМИ',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AdminColors.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                       ),
@@ -206,14 +201,14 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
 
             // Поиск
             TextField(
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AdminColors.textPrimary),
               onChanged: (val) {
                 _searchQuery = val;
-                _fetchUsers(); // Перезагружаем с первой страницы
+                _fetchUsers();
               },
               decoration: InputDecoration(
                 hintText: 'Поиск по имени, фамилии или email...',
-                hintStyle: const TextStyle(color: Colors.white24),
+                hintStyle: const TextStyle(color: AdminColors.textSecondary),
                 prefixIcon: const Icon(
                   Icons.search,
                   color: AdminColors.accentPurple,
@@ -278,7 +273,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       label: Text(
         label,
         style: TextStyle(
-          color: isSelected ? Colors.white : Colors.white54,
+          color: isSelected ? AdminColors.card : AdminColors.textSecondary,
           fontSize: 12,
         ),
       ),
@@ -302,7 +297,9 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       decoration: BoxDecoration(
         color: AdminColors.card,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: AdminColors.textPrimary.withValues(alpha: 0.05),
+        ),
       ),
       child: ListTile(
         onTap: () => context.push('/admin/users/${user.id}', extra: user),
@@ -313,24 +310,26 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               ? NetworkImage(user.avatarUrl!)
               : null,
           child: (user.avatarUrl == null || user.avatarUrl!.isEmpty)
-              ? const Icon(Icons.person, color: Colors.white24)
+              ? const Icon(Icons.person, color: AdminColors.textSecondary)
               : null,
         ),
         title: Text(
           '${user.firstName} ${user.lastName}',
           style: const TextStyle(
-            color: Colors.white,
+            color: AdminColors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
         subtitle: Text(
           user.email,
-          style: const TextStyle(color: Colors.white38, fontSize: 12),
+          style: const TextStyle(
+            color: AdminColors.textSecondary,
+            fontSize: 12,
+          ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ВЫБОР РОЛИ
             DropdownButton<String>(
               value: user.role,
               dropdownColor: AdminColors.card,

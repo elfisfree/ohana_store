@@ -104,7 +104,6 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- ШАПКА ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -114,7 +113,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                     Text(
                       'ЖУРНАЛ ЗАКАЗОВ',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AdminColors.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.2,
@@ -123,7 +122,10 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                     SizedBox(height: 5),
                     Text(
                       'Оперативное управление продажами и примерками',
-                      style: TextStyle(color: Colors.white38, fontSize: 13),
+                      style: TextStyle(
+                        color: AdminColors.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -137,7 +139,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                   label: const Text('ОБНОВИТЬ ДАННЫЕ'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AdminColors.card,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AdminColors.textPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 18,
@@ -168,7 +170,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                     return const Center(
                       child: Text(
                         'Заказов пока нет',
-                        style: TextStyle(color: Colors.white38),
+                        style: TextStyle(color: AdminColors.textSecondary),
                       ),
                     );
                   }
@@ -195,7 +197,9 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                           color: AdminColors.card,
                           borderRadius: BorderRadius.circular(15),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.05),
+                            color: AdminColors.textPrimary.withValues(
+                              alpha: 0.05,
+                            ),
                           ),
                         ),
                         child: InkWell(
@@ -242,7 +246,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
             Text(
               'ЗАКАЗ #${order.id.substring(0, 8).toUpperCase()}',
               style: const TextStyle(
-                color: Colors.white,
+                color: AdminColors.textPrimary,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -270,7 +274,10 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
         const SizedBox(height: 5),
         Text(
           DateFormat('dd.MM.yyyy HH:mm').format(order.createdAt.toLocal()),
-          style: const TextStyle(color: Colors.white38, fontSize: 12),
+          style: const TextStyle(
+            color: AdminColors.textSecondary,
+            fontSize: 12,
+          ),
         ),
       ],
     );
@@ -283,14 +290,14 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
         const Text(
           'ПОКУПАТЕЛЬ',
           style: TextStyle(
-            color: Colors.white24,
+            color: AdminColors.textSecondary,
             fontSize: 9,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           order.customerName,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
+          style: const TextStyle(color: AdminColors.textPrimary, fontSize: 13),
         ),
       ],
     );
@@ -301,7 +308,6 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     NumberFormat f,
     bool isPartialBuyout,
   ) {
-    // Проверяем: был ли частичный выкуп (заказ доставлен и сумма меньше исходной)
     final bool isPartialBuyout =
         order.status == 'delivered' &&
         order.actualAmountPaid > 0 &&
@@ -310,24 +316,23 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Если был возврат - показываем старую цену зачеркнутой
         if (isPartialBuyout)
           Text(
             f.format(order.finalPrice),
             style: const TextStyle(
-              color: Colors.white24,
+              color: AdminColors.textSecondary,
               fontSize: 12,
               decoration: TextDecoration.lineThrough,
             ),
           ),
-
-        // Показываем актуальную сумму (зеленым, если она изменилась)
         Text(
           isPartialBuyout
               ? f.format(order.actualAmountPaid)
               : f.format(order.finalPrice),
           style: TextStyle(
-            color: isPartialBuyout ? Colors.greenAccent : Colors.white,
+            color: isPartialBuyout
+                ? const Color.fromARGB(255, 1, 143, 74)
+                : AdminColors.textPrimary,
             fontWeight: FontWeight.w900,
             fontSize: 18,
           ),
@@ -337,8 +342,8 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
           isPartialBuyout ? 'ЧАСТИЧНЫЙ ВЫКУП' : 'СУММА ЗАКАЗА',
           style: TextStyle(
             color: isPartialBuyout
-                ? Colors.greenAccent.withValues(alpha: .5)
-                : Colors.white10,
+                ? const Color.fromARGB(255, 1, 143, 74)
+                : AdminColors.textPrimary,
             fontSize: 9,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
@@ -360,7 +365,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
           const SizedBox(width: 10),
           _statusButton(
             'В СБОРКУ',
-            Colors.greenAccent,
+            const Color.fromARGB(255, 1, 143, 74),
             () => _updateStatus(order.id, 'processing'),
           ),
         ],
@@ -415,15 +420,15 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
       text = 'В ПУТИ';
     }
     if (status == 'delivered') {
-      color = Colors.greenAccent;
+      color = const Color.fromARGB(255, 1, 143, 74);
       text = 'ДОСТАВЛЕН';
     }
     if (status == 'cancelled') {
-      color = Colors.white24;
+      color = AdminColors.textSecondary;
       text = 'ОТМЕНЕН';
     }
     if (status == 'returned') {
-      color = Colors.white24;
+      color = AdminColors.textSecondary;
       text = 'ВОЗВРАТ';
     }
     if (status == 'return_requested') {
@@ -461,10 +466,13 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AdminColors.card,
-        title: const Text('ОТМЕНА', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'ОТМЕНА',
+          style: TextStyle(color: AdminColors.textPrimary),
+        ),
         content: const Text(
           'Вы действительно хотите отменить заказ?',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: AdminColors.textSecondary),
         ),
         actions: [
           TextButton(

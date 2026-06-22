@@ -109,9 +109,9 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
           data: ThemeData.dark().copyWith(
             colorScheme: const ColorScheme.dark(
               primary: AdminColors.accentPurple,
-              onPrimary: Colors.white,
+              onPrimary: AdminColors.textPrimary,
               surface: AdminColors.card,
-              onSurface: Colors.white,
+              onSurface: AdminColors.textSecondary,
             ),
           ),
           child: child!,
@@ -183,10 +183,9 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
       if (mounted) {
         AppNotifications.showSuccess(context, 'Данные сохранены');
 
-        // --- ГЛАВНОЕ ОБНОВЛЕНИЕ ЧЕРЕЗ ПРОВАЙДЕР ---
         context.read<PromocodesProvider>().fetchPromocodes();
 
-        context.pop(); // Просто закрываем страницу
+        context.pop();
       }
     } catch (e) {
       if (mounted) AppNotifications.showError(context, 'Ошибка: $e');
@@ -204,7 +203,7 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        foregroundColor: AdminColors.textPrimary,
         title: Text(
           isEditing ? 'РЕДАКТИРОВАНИЕ ПРОМОКОДА' : 'СОЗДАНИЕ ПРОМОКОДА',
           style: const TextStyle(
@@ -262,13 +261,15 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
                           title: const Text(
                             'Статус промокода',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: AdminColors.textPrimary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           subtitle: Text(
                             _isActive ? 'Активен и доступен' : 'Отключен',
-                            style: const TextStyle(color: Colors.white38),
+                            style: const TextStyle(
+                              color: AdminColors.textSecondary,
+                            ),
                           ),
                           value: _isActive,
                           activeColor: AdminColors.accentPurple,
@@ -301,7 +302,7 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
                             const Text(
                               'Выберите типы товаров, на которые действует скидка:',
                               style: TextStyle(
-                                color: Colors.white54,
+                                color: AdminColors.textSecondary,
                                 fontSize: 13,
                               ),
                             ),
@@ -313,7 +314,9 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
                                   contentPadding: EdgeInsets.zero,
                                   title: Text(
                                     type.name,
-                                    style: const TextStyle(color: Colors.white),
+                                    style: const TextStyle(
+                                      color: AdminColors.textPrimary,
+                                    ),
                                   ),
                                   value: _selectedProductTypeIds.contains(
                                     type.id,
@@ -384,7 +387,7 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
       readOnly: readOnly,
       onTap: onTap,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: AdminColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: AdminColors.textPrimary),

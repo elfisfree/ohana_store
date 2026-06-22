@@ -35,7 +35,7 @@ class AdminProductsPage extends StatelessWidget {
                         const Text(
                           'УПРАВЛЕНИЕ АССОРТИМЕНТОМ',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AdminColors.textPrimary,
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.2,
@@ -53,16 +53,19 @@ class AdminProductsPage extends StatelessWidget {
                     ),
                     ElevatedButton.icon(
                       onPressed: () async {
-                        // 1. Ждем, пока админ добавит товар и нажмет "Сохранить"
                         await context.push('/admin/products/new');
-                        // 2. После возврата на эту страницу — обновляем список
                         provider.fetchProducts();
                       },
                       icon: const Icon(Icons.add_box_rounded),
                       label: const Text('НОВЫЙ ТОВАР'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AdminColors.accentPurple,
-                        foregroundColor: Colors.white,
+                        foregroundColor: const Color.fromARGB(
+                          255,
+                          255,
+                          255,
+                          255,
+                        ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 18,
@@ -81,13 +84,15 @@ class AdminProductsPage extends StatelessWidget {
                       child: TextField(
                         onChanged: (query) =>
                             provider.onSearchQueryChanged(query),
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: AdminColors.textPrimary),
                         decoration: InputDecoration(
                           hintText: 'Поиск по названию, бренду или тегу...',
-                          hintStyle: const TextStyle(color: Colors.white24),
+                          hintStyle: const TextStyle(
+                            color: AdminColors.textSecondary,
+                          ),
                           prefixIcon: const Icon(
                             Icons.search,
-                            color: Colors.white38,
+                            color: AdminColors.textSecondary,
                           ),
                           filled: true,
                           fillColor: AdminColors.card,
@@ -155,7 +160,9 @@ class AdminProductsPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AdminColors.card,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: AdminColors.textPrimary.withValues(alpha: 0.05),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -185,7 +192,7 @@ class AdminProductsPage extends StatelessWidget {
                           color: Colors.black26,
                           child: const Icon(
                             Icons.image_not_supported,
-                            color: Colors.white10,
+                            color: AdminColors.textSecondary,
                             size: 40,
                           ),
                         ),
@@ -197,7 +204,7 @@ class AdminProductsPage extends StatelessWidget {
                     onTap: () => _confirmDelete(context, product, provider),
                     child: CircleAvatar(
                       radius: 16,
-                      backgroundColor: Colors.black54,
+                      backgroundColor: const Color.fromARGB(206, 204, 204, 204),
                       child: const Icon(
                         Icons.delete_outline_rounded,
                         color: Colors.redAccent,
@@ -230,7 +237,7 @@ class AdminProductsPage extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AdminColors.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 17,
                     ),
@@ -241,7 +248,7 @@ class AdminProductsPage extends StatelessWidget {
                   const Text(
                     'ОСТАТКИ НА СКЛАДЕ:',
                     style: TextStyle(
-                      color: Colors.white24,
+                      color: AdminColors.textSecondary,
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
                     ),
@@ -307,9 +314,10 @@ class AdminProductsPage extends StatelessWidget {
                                                             .withValues(
                                                               alpha: 0.3,
                                                             )
-                                                      : Colors.white.withValues(
-                                                          alpha: 0.05,
-                                                        ),
+                                                      : AdminColors.textPrimary
+                                                            .withValues(
+                                                              alpha: 0.05,
+                                                            ),
                                                 ),
                                               ),
                                               child: Text(
@@ -317,7 +325,8 @@ class AdminProductsPage extends StatelessWidget {
                                                 style: TextStyle(
                                                   color: isLow
                                                       ? Colors.redAccent
-                                                      : Colors.white70,
+                                                      : AdminColors
+                                                            .textSecondary,
                                                   fontSize: 9,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -333,14 +342,14 @@ class AdminProductsPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Divider(color: Colors.white10, height: 20),
+                  const Divider(color: AdminColors.textSecondary, height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         f.format(product.price),
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AdminColors.textPrimary,
                           fontWeight: FontWeight.w900,
                           fontSize: 18,
                         ),
@@ -385,7 +394,7 @@ class AdminProductsPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
       ),
       child: IconButton(
-        icon: Icon(icon, color: Colors.white),
+        icon: Icon(icon, color: AdminColors.textPrimary),
         onPressed: onTap,
       ),
     );
@@ -402,16 +411,22 @@ class AdminProductsPage extends StatelessWidget {
         backgroundColor: AdminColors.card,
         title: const Text(
           'УДАЛЕНИЕ',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: AdminColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           'Удалить "${product.name}" из базы?',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: AdminColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('ОТМЕНА', style: TextStyle(color: Colors.grey)),
+            child: const Text(
+              'ОТМЕНА',
+              style: TextStyle(color: AdminColors.textPrimary),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),

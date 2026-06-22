@@ -116,7 +116,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                           Icon(
                             Icons.rate_review_outlined,
                             size: 60,
-                            color: Colors.white10,
+                            color: AdminColors.textSecondary,
                           ),
                           SizedBox(height: 16),
                           Text(
@@ -147,7 +147,9 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                           color: AdminColors.card,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.05),
+                            color: AdminColors.textPrimary.withValues(
+                              alpha: 0.05,
+                            ),
                           ),
                         ),
                         child: Column(
@@ -199,7 +201,10 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                                 ),
                               ),
                             ),
-                            const Divider(height: 1, color: Colors.white10),
+                            const Divider(
+                              height: 1,
+                              color: AdminColors.textSecondary,
+                            ),
                             Padding(
                               padding: const EdgeInsets.all(20),
                               child: Column(
@@ -248,8 +253,8 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                                           : 'Пользователь не оставил текстового описания, только оценку.',
                                       style: TextStyle(
                                         color: review.reviewText.isNotEmpty
-                                            ? Colors.white
-                                            : Colors.white24,
+                                            ? AdminColors.textPrimary
+                                            : AdminColors.textSecondary,
                                         fontSize: 15,
                                         fontStyle: review.reviewText.isNotEmpty
                                             ? FontStyle.normal
@@ -289,7 +294,8 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                                         ),
                                         label: const Text('ОДОБРИТЬ ОТЗЫВ'),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.white
+                                          backgroundColor: AdminColors
+                                              .textPrimary
                                               .withValues(alpha: 0.05),
                                           foregroundColor: Colors.greenAccent,
                                           padding: const EdgeInsets.symmetric(

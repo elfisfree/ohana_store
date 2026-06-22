@@ -145,16 +145,18 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
               backgroundColor: AdminColors.card,
               title: Text(
                 'Добавить $entityName',
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AdminColors.textPrimary),
               ),
               content: Form(
                 key: fKey,
                 child: TextFormField(
                   controller: controller,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AdminColors.textPrimary),
                   decoration: InputDecoration(
                     labelText: 'Название $entityName',
-                    labelStyle: const TextStyle(color: Colors.white54),
+                    labelStyle: const TextStyle(
+                      color: AdminColors.textSecondary,
+                    ),
                     filled: true,
                     fillColor: AdminColors.sidebar,
                     border: OutlineInputBorder(
@@ -197,7 +199,7 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
                           height: 15,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: AdminColors.textPrimary,
                           ),
                         )
                       : const Text('Сохранить'),
@@ -339,7 +341,7 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
           style: TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 16,
-            color: Colors.white,
+            color: AdminColors.textPrimary,
           ),
         ),
         actions: [
@@ -392,7 +394,7 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
                         const Text(
                           'ЦВЕТОВЫЕ РЕШЕНИЯ',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AdminColors.textPrimary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -440,7 +442,7 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
       decoration: BoxDecoration(
         color: AdminColors.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: AdminColors.textSecondary),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,7 +454,10 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
                 radius: 15,
                 child: Text(
                   '${index + 1}',
-                  style: const TextStyle(fontSize: 12, color: Colors.white),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color.fromARGB(255, 255, 255, 255),
+                  ),
                 ),
               ),
               const SizedBox(width: 15),
@@ -473,25 +478,25 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
               ),
             ],
           ),
-          const Divider(height: 40, color: Colors.white10),
+          const Divider(height: 40, color: Color.fromARGB(110, 95, 95, 95)),
           const Text(
             'ФОТОГРАФИИ ЭТОГО ЦВЕТА',
             style: TextStyle(
-              color: Colors.white54,
+              color: AdminColors.textSecondary,
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 15),
           _buildImageGrid(variant),
-          const Divider(height: 40, color: Colors.white10),
+          const Divider(height: 40, color: Color.fromARGB(110, 95, 95, 95)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'ТАБЛИЦА РАЗМЕРОВ',
                 style: TextStyle(
-                  color: Colors.white54,
+                  color: AdminColors.textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
@@ -552,7 +557,7 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
             ),
             child: const Icon(
               Icons.add_a_photo_outlined,
-              color: Colors.white24,
+              color: AdminColors.textPrimary,
             ),
           ),
         ),
@@ -588,7 +593,7 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
             icon: const Icon(
               Icons.remove_circle_outline,
               size: 18,
-              color: Colors.white24,
+              color: AdminColors.textSecondary,
             ),
             onPressed: () => setState(() => variant.stockData.removeAt(sIndex)),
           ),
@@ -748,10 +753,10 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
       controller: controller,
       maxLines: maxLines,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
+      style: const TextStyle(color: AdminColors.textPrimary, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white38),
+        labelStyle: const TextStyle(color: AdminColors.textSecondary),
         filled: true,
         fillColor: AdminColors.sidebar,
         border: OutlineInputBorder(
@@ -772,10 +777,13 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
       initialValue: initialValue,
       onChanged: onChanged,
       keyboardType: TextInputType.number,
-      style: const TextStyle(color: Colors.white, fontSize: 13),
+      style: const TextStyle(color: AdminColors.textPrimary, fontSize: 13),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white38, fontSize: 10),
+        labelStyle: const TextStyle(
+          color: AdminColors.textSecondary,
+          fontSize: 10,
+        ),
         filled: true,
         fillColor: AdminColors.sidebar,
         border: OutlineInputBorder(
@@ -800,10 +808,10 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
         value: value,
         isExpanded: true,
         dropdownColor: AdminColors.card,
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: const TextStyle(color: AdminColors.textPrimary, fontSize: 14),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.white38),
+          labelStyle: const TextStyle(color: AdminColors.textSecondary),
           filled: true,
           fillColor: AdminColors.sidebar,
           border: OutlineInputBorder(

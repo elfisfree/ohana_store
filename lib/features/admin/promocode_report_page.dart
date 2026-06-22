@@ -59,7 +59,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.1),
         ),
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: AdminColors.textPrimary,
         elevation: 0,
       ),
       body: FutureBuilder<(int, List<PromocodeUsage>)>(
@@ -74,7 +74,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
             return Center(
               child: Text(
                 'Ошибка: ${snapshot.error}',
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AdminColors.textPrimary),
               ),
             );
           }
@@ -120,7 +120,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
           const Text(
             'ВСЕГО ИСПОЛЬЗОВАНО',
             style: TextStyle(
-              color: Colors.white54,
+              color: AdminColors.textSecondary,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 1,
@@ -130,7 +130,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
           Text(
             total.toString(),
             style: const TextStyle(
-              color: Colors.white,
+              color: AdminColors.textPrimary,
               fontSize: 56,
               fontWeight: FontWeight.w900,
             ),
@@ -138,12 +138,16 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
           const SizedBox(height: 10),
           const Row(
             children: [
-              Icon(Icons.trending_up, color: Colors.greenAccent, size: 20),
+              Icon(
+                Icons.trending_up,
+                color: Color.fromARGB(255, 1, 150, 78),
+                size: 20,
+              ),
               SizedBox(width: 5),
               Text(
                 'Активная акция',
                 style: TextStyle(
-                  color: Colors.greenAccent,
+                  color: Color.fromARGB(255, 1, 150, 78),
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -182,7 +186,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
                 padding: EdgeInsets.all(40),
                 child: Text(
                   'Данные отсутствуют',
-                  style: TextStyle(color: Colors.white38),
+                  style: TextStyle(color: AdminColors.textSecondary),
                 ),
               ),
             )
@@ -195,7 +199,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
               },
               border: TableBorder(
                 horizontalInside: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: AdminColors.textPrimary.withValues(alpha: 0.05),
                 ),
               ),
               children: [
@@ -225,7 +229,6 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
     );
   }
 
-  //------------------конец графика
   Widget _tableHeader(String text) => Padding(
     padding: const EdgeInsets.all(15),
     child: Text(
@@ -243,7 +246,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
         child: Text(
           text,
           style: TextStyle(
-            color: isDim ? Colors.white38 : Colors.white,
+            color: isDim ? AdminColors.textPrimary : AdminColors.textPrimary,
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
           ),
         ),

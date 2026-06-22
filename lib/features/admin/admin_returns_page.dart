@@ -94,7 +94,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
         title: const Text(
           'УКАЖИТЕ ПРИЧИНУ ОТКАЗА',
           style: TextStyle(
-            color: Colors.white,
+            color: AdminColors.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
@@ -102,10 +102,10 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
         content: TextField(
           controller: controller,
           maxLines: 3,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: AdminColors.textPrimary),
           decoration: InputDecoration(
             hintText: 'Напр: Следы носки, повреждена упаковка...',
-            hintStyle: const TextStyle(color: Colors.white24),
+            hintStyle: const TextStyle(color: AdminColors.textSecondary),
             filled: true,
             fillColor: AdminColors.sidebar,
             border: OutlineInputBorder(
@@ -159,7 +159,10 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white24),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AdminColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -173,12 +176,12 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                 ).format(DateTime.parse(r['created_at']).toLocal()),
               ),
 
-              const Divider(color: Colors.white10, height: 40),
+              const Divider(color: AdminColors.textSecondary, height: 40),
 
               const Text(
                 'ПРИЧИНА ВОЗВРАТА (ОТ КЛИЕНТА):',
                 style: TextStyle(
-                  color: Colors.white54,
+                  color: AdminColors.textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
@@ -194,7 +197,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                 child: Text(
                   r['reason'],
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AdminColors.textPrimary,
                     fontSize: 14,
                     height: 1.5,
                   ),
@@ -272,8 +275,8 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                   onPressed: () =>
                       context.push('/admin/orders/${r['order_id']}'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white38,
-                    side: const BorderSide(color: Colors.white10),
+                    foregroundColor: AdminColors.textSecondary,
+                    side: const BorderSide(color: AdminColors.textSecondary),
                   ),
                   child: const Text('ПЕРЕЙТИ В КАРТОЧКУ ЗАКАЗА'),
                 ),
@@ -294,12 +297,15 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.white38, fontSize: 13),
+            style: const TextStyle(
+              color: AdminColors.textSecondary,
+              fontSize: 13,
+            ),
           ),
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: AdminColors.textPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
@@ -326,7 +332,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
             const Text(
               'ЗАЯВКИ НА ВОЗВРАТ',
               style: TextStyle(
-                color: Colors.white,
+                color: AdminColors.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.2,
@@ -340,7 +346,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                   color: AdminColors.card,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: AdminColors.textPrimary.withValues(alpha: 0.05),
                   ),
                 ),
                 child: FutureBuilder<List<dynamic>>(
@@ -353,7 +359,9 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                       return Center(
                         child: Text(
                           'Ошибка: ${snapshot.error}',
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(
+                            color: AdminColors.textPrimary,
+                          ),
                         ),
                       );
                     }
@@ -362,7 +370,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                       return const Center(
                         child: Text(
                           'Новых заявок на возврат нет',
-                          style: TextStyle(color: Colors.white24),
+                          style: TextStyle(color: AdminColors.textSecondary),
                         ),
                       );
                     }
@@ -376,7 +384,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                           fontSize: 12,
                         ),
                         dataTextStyle: const TextStyle(
-                          color: Colors.white,
+                          color: AdminColors.textPrimary,
                           fontSize: 14,
                         ),
                         columns: const [

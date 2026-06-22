@@ -71,7 +71,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.1),
         ),
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: AdminColors.textPrimary,
         elevation: 0,
       ),
       body: FutureBuilder<(AdminUser, List<Order>)>(
@@ -86,7 +86,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
             return Center(
               child: Text(
                 'Ошибка: ${snapshot.error}',
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AdminColors.textPrimary),
               ),
             );
           }
@@ -141,7 +141,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
                 const Text(
                   'ИСТОРИЯ ПОКУПОК',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AdminColors.textPrimary,
                     fontWeight: FontWeight.w900,
                     fontSize: 16,
                     letterSpacing: 1.2,
@@ -174,7 +174,11 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
                 ? NetworkImage(user.avatarUrl!)
                 : null,
             child: user.avatarUrl == null
-                ? const Icon(Icons.person, size: 60, color: Colors.white12)
+                ? const Icon(
+                    Icons.person,
+                    size: 60,
+                    color: AdminColors.textSecondary,
+                  )
                 : null,
           ),
           const SizedBox(height: 20),
@@ -182,7 +186,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
             '${user.firstName} ${user.lastName}',
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white,
+              color: AdminColors.textPrimary,
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
@@ -190,7 +194,10 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
           const SizedBox(height: 5),
           Text(
             user.email,
-            style: const TextStyle(color: Colors.white38, fontSize: 14),
+            style: const TextStyle(
+              color: AdminColors.textSecondary,
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 25),
           Container(
@@ -227,14 +234,14 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
             'Дата регистрации',
             DateFormat('dd.MM.yyyy').format(user.createdAt),
           ),
-          const Divider(color: Colors.white10, height: 30),
+          const Divider(color: AdminColors.textSecondary, height: 30),
           _infoRow(
             'Пол',
             user.gender == 'male'
                 ? 'Мужской'
                 : (user.gender == 'female' ? 'Женский' : 'Не указан'),
           ),
-          const Divider(color: Colors.white10, height: 30),
+          const Divider(color: AdminColors.textSecondary, height: 30),
           _infoRow(
             'Дата рождения',
             user.dateOfBirth != null
@@ -264,7 +271,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
                 Text(
                   value,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AdminColors.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
@@ -272,7 +279,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: Colors.white38,
+                    color: AdminColors.textSecondary,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -290,7 +297,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
       return const Center(
         child: Text(
           'Заказы не найдены',
-          style: TextStyle(color: Colors.white24),
+          style: TextStyle(color: AdminColors.textSecondary),
         ),
       );
     }
@@ -306,7 +313,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
           color: AdminColors.accentPurple,
           fontWeight: FontWeight.bold,
         ),
-        dataTextStyle: const TextStyle(color: Colors.white),
+        dataTextStyle: const TextStyle(color: AdminColors.textPrimary),
         columns: const [
           DataColumn(label: Text('НОМЕР ЗАКАЗА')),
           DataColumn(label: Text('ДАТА')),
@@ -357,12 +364,15 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white38, fontSize: 14),
+          style: const TextStyle(
+            color: AdminColors.textSecondary,
+            fontSize: 14,
+          ),
         ),
         Text(
           value,
           style: const TextStyle(
-            color: Colors.white,
+            color: AdminColors.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 14,
           ),
