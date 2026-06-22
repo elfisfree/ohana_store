@@ -125,8 +125,11 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                   ],
                 ),
                 ElevatedButton.icon(
-                  onPressed: () =>
-                      setState(() => _ordersFuture = _fetchOrders()),
+                  onPressed: () {
+                    setState(() {
+                      _ordersFuture = _fetchOrders();
+                    });
+                  },
                   icon: const Icon(Icons.refresh),
                   label: const Text('ОБНОВИТЬ ДАННЫЕ'),
                   style: ElevatedButton.styleFrom(

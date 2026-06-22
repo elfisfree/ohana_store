@@ -1194,9 +1194,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildTotalCard(Order order, bool dark, Color text, NumberFormat f) {
-    final bool showActual =
+    final bool isPriceChanged =
         order.status == 'delivered' &&
-        (order.actualAmountPaid != order.finalPrice > 0);
+        order.actualAmountPaid > 0 &&
+        (order.actualAmountPaid - order.finalPrice).abs() > 1.0;
 
     return Container(
       padding: const EdgeInsets.all(25),
@@ -1211,7 +1212,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                showActual ? 'ИТОГО К ОПЛАТЕ (БЫЛО)' : 'ИТОГО К ОПЛАТЕ',
+                isPriceChanged ? 'СУММА ЗАКАЗА (БЫЛО)' : 'ИТОГО К ОПЛАТЕ',
                 style: const TextStyle(
                   color: Colors.grey,
                   fontWeight: FontWeight.bold,
@@ -1224,20 +1225,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   color: text,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  decoration: showActual ? TextDecoration.lineThrough : null,
+                  decoration: isPriceChanged
+                      ? TextDecoration.lineThrough
+                      : null,
                 ),
               ),
             ],
           ),
-          if (showActual) ...[
-            const SizedBox(height: 10),
+          if (isPriceChanged) ...[
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   'ФАКТИЧЕСКИ ОПЛАЧЕНО',
                   style: TextStyle(
-                    color: Colors.green,
+                    color: Colors.black,
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
                   ),
@@ -1245,7 +1248,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 Text(
                   f.format(order.actualAmountPaid),
                   style: const TextStyle(
-                    color: Colors.green,
+                    color: Colors.black,
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                   ),

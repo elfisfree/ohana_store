@@ -103,16 +103,21 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      dynamic query = supabase.from('products').select('''
+      String selectString =
+          '''
         *,
         brands(*),
         product_types(*),
         styles(*),
         materials(*),
         product_tags(tags(*)),
-        product_variants(*, product_stock(*))
-      ''');
+        product_variants${_selectedSizes.isNotEmpty ? "!inner" : ""}(
+          *, 
+          product_stock${_selectedSizes.isNotEmpty ? "!inner" : ""}(*)
+        )
+      ''';
 
+      dynamic query = supabase.from('products').select(selectString);
       if (_searchQuery.isNotEmpty) {
         final searchTerms = _searchQuery
             .trim()
@@ -124,7 +129,6 @@ class CatalogProvider extends ChangeNotifier {
           query = query.textSearch('fts', parsedQuery, config: 'russian');
         }
       }
-
       if (_selectedBrandIds.isNotEmpty) {
         query = query.inFilter('brand_id', _selectedBrandIds.toList());
       }
@@ -140,11 +144,13 @@ class CatalogProvider extends ChangeNotifier {
       if (_selectedMaterialIds.isNotEmpty) {
         query = query.inFilter('material_id', _selectedMaterialIds.toList());
       }
-
       if (_selectedSizes.isNotEmpty) {
-        query = query.overlaps('available_sizes', _selectedSizes.toList());
+        query = query.inFilter(
+          'product_variants.product_stock.size',
+          _selectedSizes.toList(),
+        );
+        query = query.gt('product_variants.product_stock.quantity', 0);
       }
-
       query = query
           .gte('price', _selectedPriceRange.start)
           .lte('price', _selectedPriceRange.end);
@@ -161,6 +167,7 @@ class CatalogProvider extends ChangeNotifier {
       final List<Map<String, dynamic>> data = List<Map<String, dynamic>>.from(
         response,
       );
+
       _products = data.map((p) => Product.fromJson(p)).toList();
       _error = null;
     } catch (e) {

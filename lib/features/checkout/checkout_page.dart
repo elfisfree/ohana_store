@@ -514,7 +514,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               setState(() => _withFitting = val),
                         ),
                       ),
-
+                      const SizedBox(height: 10),
                       _buildSectionTitle('Способ оплаты'),
                       const SizedBox(height: 10),
                       Container(
