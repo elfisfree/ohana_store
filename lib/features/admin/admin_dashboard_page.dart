@@ -58,14 +58,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(color: AdminColors.accentBlue),
+                child: CircularProgressIndicator(
+                  color: AdminColors.accentPurple,
+                ),
               );
             }
             if (snapshot.hasError) {
               return Center(
                 child: Text(
                   'Ошибка: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.black),
                 ),
               );
             }
@@ -81,7 +83,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     const Text(
                       'МОЁ ПРОСТРАНСТВО',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AdminColors.textPrimary,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.5,
@@ -98,7 +100,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AdminColors.accentBlue,
+                        backgroundColor: AdminColors.accentPurple,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
@@ -147,7 +149,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 'ЗАКАЗЫ',
                                 s.totalOrders.toString(),
                                 0.3,
-                                AdminColors.accentBlue,
+                                AdminColors.accentPurple,
                                 Icons.shopping_cart_outlined,
                               ),
                               _statCard(
@@ -201,43 +203,45 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       decoration: BoxDecoration(
         color: AdminColors.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+        boxShadow: AdminColors.shadow,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: color, size: 24),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
+          CircleAvatar(
+            backgroundColor: color.withValues(alpha: 0.1),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: AdminColors.textPrimary, // ТЕМНЫЙ ТЕКСТ
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white38,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: 1,
-              color: color,
-              backgroundColor: Colors.white10,
-              minHeight: 4,
+                Text(
+                  title.toUpperCase(),
+                  style: const TextStyle(
+                    color: AdminColors.textSecondary, // СЕРЫЙ ТЕКСТ
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: progress,
+                  color: color,
+                  backgroundColor: color.withValues(alpha: 0.1),
+                  minHeight: 4,
+                ),
+              ],
             ),
           ),
         ],
@@ -257,7 +261,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           const Text(
             'ОБЗОР МАГАЗИНА',
             style: TextStyle(
-              color: Colors.white,
+              color: AdminColors.textPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
@@ -272,7 +276,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 child: CircularProgressIndicator(
                   value: 1,
                   strokeWidth: 15,
-                  color: AdminColors.accentBlue,
+                  color: AdminColors.accentPurple,
                   backgroundColor: Colors.white10,
                 ),
               ),
@@ -280,7 +284,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 'Ohana\nStore',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.black,
                   fontWeight: FontWeight.w900,
                   fontSize: 18,
                 ),
@@ -304,7 +308,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             'Активные заказы',
             s.pendingOrders.toString(),
             Icons.work,
-            AdminColors.accentBlue,
+            AdminColors.accentPurple,
           ),
         ],
       ),
@@ -321,13 +325,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
+              style: const TextStyle(
+                color: AdminColors.textPrimary,
+                fontSize: 13,
+              ),
             ),
           ),
           Text(
             val,
             style: const TextStyle(
-              color: Colors.white,
+              color: Colors.black,
               fontWeight: FontWeight.bold,
             ),
           ),

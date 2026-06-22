@@ -34,7 +34,7 @@ class _AdminDictionariesPageState extends State<AdminDictionariesPage> {
           title: const Text(
             'УПРАВЛЕНИЕ СПРАВОЧНИКАМИ',
             style: TextStyle(
-              color: Colors.white,
+              color: AdminColors.textPrimary,
               fontWeight: FontWeight.w900,
               fontSize: 18,
             ),
@@ -44,9 +44,9 @@ class _AdminDictionariesPageState extends State<AdminDictionariesPage> {
             tabAlignment: TabBarIndicatorSize.label == TabBarIndicatorSize.label
                 ? TabAlignment.start
                 : null,
-            indicatorColor: AdminColors.accentBlue,
-            labelColor: AdminColors.accentBlue,
-            unselectedLabelColor: Colors.white38,
+            indicatorColor: AdminColors.accentPurple,
+            labelColor: AdminColors.accentPurple,
+            unselectedLabelColor: AdminColors.textPrimary,
             tabs: _configs.map((c) => Tab(text: c['title'])).toList(),
           ),
         ),
@@ -93,7 +93,6 @@ class _DictionaryTableState extends State<_DictionaryTable> {
     });
   }
 
-  // --- ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ ---
   void _showUpsertDialog([Map<String, dynamic>? item]) {
     final controller = TextEditingController(text: item?['name'] ?? '');
     showDialog(
@@ -102,12 +101,12 @@ class _DictionaryTableState extends State<_DictionaryTable> {
         backgroundColor: AdminColors.card,
         title: Text(
           item == null ? 'НОВАЯ ЗАПИСЬ' : 'ПРАВКА',
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: AdminColors.textPrimary),
         ),
         content: TextField(
           controller: controller,
           autofocus: true,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: AdminColors.textPrimary),
           decoration: InputDecoration(
             filled: true,
             fillColor: AdminColors.sidebar,
@@ -161,7 +160,10 @@ class _DictionaryTableState extends State<_DictionaryTable> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AdminColors.card,
-        title: const Text('УДАЛИТЬ?', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'УДАЛИТЬ?',
+          style: TextStyle(color: AdminColors.textPrimary),
+        ),
         content: Text('Вы уверены, что хотите удалить "${item['name']}"?'),
         actions: [
           TextButton(
@@ -227,7 +229,7 @@ class _DictionaryTableState extends State<_DictionaryTable> {
                                   Text(
                                     item['name'],
                                     style: const TextStyle(
-                                      color: Colors.white,
+                                      color: AdminColors.textPrimary,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -237,8 +239,9 @@ class _DictionaryTableState extends State<_DictionaryTable> {
                                     item['usage_count'].toString(),
                                     style: TextStyle(
                                       color: item['usage_count'] > 0
-                                          ? Colors.greenAccent
-                                          : Colors.white24,
+                                          ? AdminColors.textPrimary
+                                          : AdminColors.textSecondary,
+                                      fontWeight: FontWeight.w900,
                                     ),
                                   ),
                                 ),
@@ -248,7 +251,7 @@ class _DictionaryTableState extends State<_DictionaryTable> {
                                       IconButton(
                                         icon: const Icon(
                                           Icons.edit_outlined,
-                                          color: Colors.white38,
+                                          color: AdminColors.textPrimary,
                                           size: 18,
                                         ),
                                         onPressed: () =>

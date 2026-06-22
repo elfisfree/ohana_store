@@ -75,7 +75,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
             const Text(
               'МОДЕРАЦИЯ КОНТЕНТА',
               style: TextStyle(
-                color: Colors.white,
+                color: AdminColors.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.2,
@@ -84,7 +84,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
             const SizedBox(height: 10),
             const Text(
               'Список новых отзывов, ожидающих проверки перед публикацией.',
-              style: TextStyle(color: Colors.white38, fontSize: 14),
+              style: TextStyle(color: AdminColors.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 30),
             Expanded(
@@ -94,7 +94,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(
-                        color: AdminColors.accentBlue,
+                        color: AdminColors.accentPurple,
                       ),
                     );
                   }
@@ -102,7 +102,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                     return Center(
                       child: Text(
                         'Ошибка: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: AdminColors.textPrimary),
                       ),
                     );
                   }
@@ -122,7 +122,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                           Text(
                             'Нет новых отзывов для проверки',
                             style: TextStyle(
-                              color: Colors.white24,
+                              color: AdminColors.textSecondary,
                               fontSize: 16,
                             ),
                           ),
@@ -160,21 +160,21 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                               leading: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: AdminColors.accentBlue.withValues(
+                                  color: AdminColors.accentPurple.withValues(
                                     alpha: 0.1,
                                   ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
                                   Icons.inventory_2_outlined,
-                                  color: AdminColors.accentBlue,
+                                  color: AdminColors.accentPurple,
                                   size: 24,
                                 ),
                               ),
                               title: Text(
                                 review.productName,
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AdminColors.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
@@ -182,7 +182,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                               subtitle: const Text(
                                 'Посмотреть товар на витрине',
                                 style: TextStyle(
-                                  color: AdminColors.accentBlue,
+                                  color: AdminColors.accentPurple,
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -194,7 +194,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                                   'dd.MM.yyyy HH:mm',
                                 ).format(review.createdAt.toLocal()),
                                 style: const TextStyle(
-                                  color: Colors.white24,
+                                  color: AdminColors.textSecondary,
                                   fontSize: 12,
                                 ),
                               ),
@@ -222,7 +222,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                                       Text(
                                         'Заказ №${review.orderId.substring(0, 8)}',
                                         style: const TextStyle(
-                                          color: Colors.white24,
+                                          color: AdminColors.textSecondary,
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -237,7 +237,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                                       color: AdminColors.sidebar,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: Colors.white.withValues(
+                                        color: Colors.black.withValues(
                                           alpha: 0.03,
                                         ),
                                       ),

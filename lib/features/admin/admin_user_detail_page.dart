@@ -79,7 +79,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: AdminColors.accentBlue),
+              child: CircularProgressIndicator(color: AdminColors.accentPurple),
             );
           }
           if (snapshot.hasError) {
@@ -118,7 +118,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
                                 'ВСЕГО ЗАКАЗОВ',
                                 orderCount.toString(),
                                 Icons.shopping_bag_outlined,
-                                AdminColors.accentBlue,
+                                AdminColors.accentPurple,
                               ),
                               const SizedBox(width: 20),
                               _statCard(
@@ -196,13 +196,13 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
             decoration: BoxDecoration(
-              color: AdminColors.accentBlue.withValues(alpha: 0.1),
+              color: AdminColors.accentPurple.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               user.role == 'admin' ? 'АДМИНИСТРАТОР' : 'ПОКУПАТЕЛЬ',
               style: const TextStyle(
-                color: AdminColors.accentBlue,
+                color: AdminColors.accentPurple,
                 fontWeight: FontWeight.bold,
                 fontSize: 10,
                 letterSpacing: 1,
@@ -303,7 +303,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
       ),
       child: DataTable(
         headingTextStyle: const TextStyle(
-          color: AdminColors.accentBlue,
+          color: AdminColors.accentPurple,
           fontWeight: FontWeight.bold,
         ),
         dataTextStyle: const TextStyle(color: Colors.white),

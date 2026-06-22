@@ -41,7 +41,7 @@ class AdminDesktopShell extends StatelessWidget {
                   adminName,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Colors.black,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -49,7 +49,7 @@ class AdminDesktopShell extends StatelessWidget {
                 const Text(
                   "ГЛАВНЫЙ МЕНЕДЖЕР",
                   style: TextStyle(
-                    color: AdminColors.accentBlue,
+                    color: AdminColors.accentPurple,
                     fontSize: 10,
                     letterSpacing: 1.2,
                   ),
@@ -133,7 +133,7 @@ class AdminDesktopShell extends StatelessWidget {
           const Text(
             'Панель управления',
             style: TextStyle(
-              color: Colors.white,
+              color: Colors.black,
               fontSize: 22,
               fontWeight: FontWeight.w900,
             ),
@@ -150,7 +150,7 @@ class AdminDesktopShell extends StatelessWidget {
           Text(
             name,
             style: const TextStyle(
-              color: Colors.white,
+              color: Colors.black,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -178,14 +178,18 @@ class AdminDesktopShell extends StatelessWidget {
           icon,
           color: isLogout
               ? Colors.redAccent
-              : (isSelected ? Colors.white : Colors.white38),
+              : (isSelected
+                    ? Colors.black
+                    : const Color.fromARGB(193, 43, 43, 43)),
         ),
         title: Text(
           title.toUpperCase(),
           style: TextStyle(
             color: isLogout
                 ? Colors.redAccent
-                : (isSelected ? Colors.white : Colors.white38),
+                : (isSelected
+                      ? Colors.black
+                      : const Color.fromARGB(193, 43, 43, 43)),
             fontSize: 12,
             fontWeight: isSelected || isLogout
                 ? FontWeight.bold
@@ -201,7 +205,7 @@ class AdminDesktopShell extends StatelessWidget {
           }
         },
         selected: isSelected,
-        selectedTileColor: AdminColors.accentBlue,
+        selectedTileColor: AdminColors.accentPurple,
       ),
     );
   }

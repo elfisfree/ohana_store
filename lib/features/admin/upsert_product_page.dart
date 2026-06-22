@@ -350,7 +350,7 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
               icon: const Icon(Icons.done_all_rounded),
               label: const Text('СОХРАНИТЬ ВСЁ'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AdminColors.accentBlue,
+                backgroundColor: AdminColors.accentPurple,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -448,7 +448,7 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: AdminColors.accentBlue,
+                backgroundColor: AdminColors.accentPurple,
                 radius: 15,
                 child: Text(
                   '${index + 1}',
@@ -817,7 +817,7 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
             value: addValue,
             child: Text(
               '+ Добавить...',
-              style: const TextStyle(color: AdminColors.accentBlue),
+              style: const TextStyle(color: AdminColors.accentPurple),
             ),
           ),
         ],
@@ -839,7 +839,7 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
           Text(
             title,
             style: const TextStyle(
-              color: AdminColors.accentBlue,
+              color: AdminColors.accentPurple,
               fontWeight: FontWeight.w900,
               fontSize: 12,
             ),

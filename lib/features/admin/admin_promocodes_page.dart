@@ -28,7 +28,7 @@ class AdminPromocodesPage extends StatelessWidget {
                     const Text(
                       'МАРКЕТИНГОВЫЕ АКЦИИ',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AdminColors.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.2,
@@ -39,7 +39,7 @@ class AdminPromocodesPage extends StatelessWidget {
                       icon: const Icon(Icons.add_rounded),
                       label: const Text('СОЗДАТЬ ПРОМОКОД'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AdminColors.accentBlue,
+                        backgroundColor: AdminColors.accentPurple,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
@@ -57,7 +57,7 @@ class AdminPromocodesPage extends StatelessWidget {
                   child: provider.isLoading
                       ? const Center(
                           child: CircularProgressIndicator(
-                            color: AdminColors.accentBlue,
+                            color: AdminColors.accentPurple,
                           ),
                         )
                       : Container(
@@ -66,18 +66,20 @@ class AdminPromocodesPage extends StatelessWidget {
                             color: AdminColors.card,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.05),
+                              color: AdminColors.textPrimary.withValues(
+                                alpha: 0.05,
+                              ),
                             ),
                           ),
                           child: SingleChildScrollView(
                             child: DataTable(
                               headingTextStyle: const TextStyle(
-                                color: AdminColors.accentBlue,
+                                color: AdminColors.accentPurple,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 12,
                               ),
                               dataTextStyle: const TextStyle(
-                                color: Colors.white,
+                                color: AdminColors.textPrimary,
                                 fontSize: 14,
                               ),
                               columns: const [
@@ -102,7 +104,12 @@ class AdminPromocodesPage extends StatelessWidget {
                                           Text(
                                             '${p.discountPercentage.toInt()}%',
                                             style: const TextStyle(
-                                              color: Colors.greenAccent,
+                                              color: Color.fromARGB(
+                                                255,
+                                                1,
+                                                155,
+                                                81,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -156,7 +163,9 @@ class AdminPromocodesPage extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(bool isActive) {
-    final color = isActive ? Colors.green : Colors.red;
+    final color = isActive
+        ? const Color.fromARGB(255, 79, 209, 83)
+        : Colors.red;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

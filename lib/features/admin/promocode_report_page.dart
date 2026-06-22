@@ -67,7 +67,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: AdminColors.accentBlue),
+              child: CircularProgressIndicator(color: AdminColors.accentPurple),
             );
           }
           if (snapshot.hasError) {
@@ -110,7 +110,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
         color: AdminColors.card,
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: AdminColors.accentBlue.withValues(alpha: 0.2),
+          color: AdminColors.accentPurple.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -169,7 +169,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
           const Text(
             'ПОСЛЕДНИЕ ТРАНЗАКЦИИ',
             style: TextStyle(
-              color: AdminColors.accentBlue,
+              color: AdminColors.accentPurple,
               fontWeight: FontWeight.w900,
               fontSize: 13,
               letterSpacing: 1.2,
@@ -231,7 +231,7 @@ class _PromocodeReportPageState extends State<PromocodeReportPage> {
     child: Text(
       text,
       style: const TextStyle(
-        color: AdminColors.accentBlue,
+        color: AdminColors.accentPurple,
         fontSize: 11,
         fontWeight: FontWeight.w900,
       ),

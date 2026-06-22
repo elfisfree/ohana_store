@@ -65,7 +65,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
         ),
         centerTitle: true,
-        backgroundColor: Colors.orange.shade800,
+        backgroundColor: Color(0xFF673AB7),
         foregroundColor: Colors.white,
         elevation: 4,
         actions: [
@@ -86,7 +86,9 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: Colors.orange),
+              child: CircularProgressIndicator(
+                color: Color.fromARGB(255, 117, 79, 182),
+              ),
             );
           }
           if (snapshot.hasError) {
@@ -117,7 +119,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                   ElevatedButton(
                     onPressed: _refreshOrders,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange.shade800,
+                      backgroundColor: Color.fromARGB(255, 122, 86, 184),
                       foregroundColor: Colors.white,
                     ),
                     child: const Text('ПРОВЕРИТЬ НОВЫЕ'),
@@ -182,7 +184,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 18,
-                                  color: Colors.orange.shade800,
+                                  color: Color(0xFF673AB7),
                                 ),
                               ),
                             ],

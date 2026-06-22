@@ -703,7 +703,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         color: AdminColors.card,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: AdminColors.accentBlue.withValues(alpha: 0.2),
+          color: AdminColors.accentPurple.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -793,7 +793,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ElevatedButton(
               onPressed: () => _updateOrderStatus('processing'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AdminColors.accentBlue,
+                backgroundColor: AdminColors.accentPurple,
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 55),
                 shape: RoundedRectangleBorder(
@@ -836,7 +836,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? AdminColors.accentBlue : AdminColors.sidebar,
+            color: isSelected ? AdminColors.accentPurple : AdminColors.sidebar,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected ? Colors.white24 : Colors.transparent,
@@ -1085,7 +1085,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   children: [
                     Icon(
                       Icons.check_circle,
-                      color: AdminColors.accentBlue,
+                      color: AdminColors.accentPurple,
                       size: 20,
                     ),
                     if (history.indexOf(item) != history.length - 1)
@@ -1207,7 +1207,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       decoration: BoxDecoration(
                         color: isReturnedFull
                             ? Colors.red.withValues(alpha: 0.1)
-                            : AdminColors.accentBlue.withValues(alpha: 0.1),
+                            : AdminColors.accentPurple.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(5),
                       ),
                       child: Text(
@@ -1217,7 +1217,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         style: TextStyle(
                           color: isReturnedFull
                               ? Colors.red
-                              : AdminColors.accentBlue,
+                              : AdminColors.accentPurple,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),

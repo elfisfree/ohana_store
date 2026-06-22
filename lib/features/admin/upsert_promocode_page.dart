@@ -108,7 +108,7 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
         return Theme(
           data: ThemeData.dark().copyWith(
             colorScheme: const ColorScheme.dark(
-              primary: AdminColors.accentBlue,
+              primary: AdminColors.accentPurple,
               onPrimary: Colors.white,
               surface: AdminColors.card,
               onSurface: Colors.white,
@@ -220,7 +220,7 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
               icon: const Icon(Icons.check_rounded),
               label: const Text('СОХРАНИТЬ'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AdminColors.accentBlue,
+                backgroundColor: AdminColors.accentPurple,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -271,7 +271,7 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
                             style: const TextStyle(color: Colors.white38),
                           ),
                           value: _isActive,
-                          activeColor: AdminColors.accentBlue,
+                          activeColor: AdminColors.accentPurple,
                           onChanged: (val) => setState(() => _isActive = val),
                         ),
                       ]),
@@ -318,7 +318,7 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
                                   value: _selectedProductTypeIds.contains(
                                     type.id,
                                   ),
-                                  activeColor: AdminColors.accentBlue,
+                                  activeColor: AdminColors.accentPurple,
                                   onChanged: (isSelected) {
                                     setState(() {
                                       if (isSelected == true) {
@@ -355,7 +355,7 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
           Text(
             title,
             style: const TextStyle(
-              color: AdminColors.accentBlue,
+              color: AdminColors.accentPurple,
               fontWeight: FontWeight.w900,
               fontSize: 13,
               letterSpacing: 1.2,
@@ -387,9 +387,9 @@ class _UpsertPromocodePageState extends State<UpsertPromocodePage> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white38),
+        labelStyle: const TextStyle(color: AdminColors.textPrimary),
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white10),
+        hintStyle: const TextStyle(color: AdminColors.textSecondary),
         prefixIcon: icon != null
             ? Icon(icon, color: Colors.white38, size: 20)
             : null,

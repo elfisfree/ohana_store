@@ -193,7 +193,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     Text(
                       'Всего в базе: ${_allUsers.length}${_hasMore ? "+" : ""}',
                       style: const TextStyle(
-                        color: AdminColors.accentBlue,
+                        color: AdminColors.accentPurple,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -216,7 +216,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                 hintStyle: const TextStyle(color: Colors.white24),
                 prefixIcon: const Icon(
                   Icons.search,
-                  color: AdminColors.accentBlue,
+                  color: AdminColors.accentPurple,
                 ),
                 filled: true,
                 fillColor: AdminColors.card,
@@ -233,7 +233,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               child: _isLoading
                   ? const Center(
                       child: CircularProgressIndicator(
-                        color: AdminColors.accentBlue,
+                        color: AdminColors.accentPurple,
                       ),
                     )
                   : ListView.builder(
@@ -289,7 +289,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
           _fetchUsers();
         }
       },
-      selectedColor: AdminColors.accentBlue,
+      selectedColor: AdminColors.accentPurple,
       backgroundColor: AdminColors.card,
       showCheckmark: false,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -336,7 +336,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               dropdownColor: AdminColors.card,
               underline: const SizedBox(),
               style: const TextStyle(
-                color: AdminColors.accentBlue,
+                color: AdminColors.accentPurple,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),

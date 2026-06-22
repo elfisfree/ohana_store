@@ -159,7 +159,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                   if (!snapshot.hasData) {
                     return const Center(
                       child: CircularProgressIndicator(
-                        color: AdminColors.accentBlue,
+                        color: AdminColors.accentPurple,
                       ),
                     );
                   }

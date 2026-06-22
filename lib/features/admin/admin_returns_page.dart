@@ -152,7 +152,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                   const Text(
                     'ДЕТАЛИ ЗАЯВКИ',
                     style: TextStyle(
-                      color: AdminColors.accentBlue,
+                      color: AdminColors.accentPurple,
                       fontWeight: FontWeight.w900,
                       fontSize: 14,
                     ),
@@ -371,7 +371,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                       child: DataTable(
                         showCheckboxColumn: false,
                         headingTextStyle: const TextStyle(
-                          color: AdminColors.accentBlue,
+                          color: AdminColors.accentPurple,
                           fontWeight: FontWeight.w900,
                           fontSize: 12,
                         ),
@@ -409,7 +409,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                                       children: [
                                         _actionBtn(
                                           Icons.info_outline_rounded,
-                                          AdminColors.accentBlue,
+                                          AdminColors.accentPurple,
                                           () => _showReturnDetails(r),
                                         ),
                                       ],

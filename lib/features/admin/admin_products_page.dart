@@ -45,7 +45,7 @@ class AdminProductsPage extends StatelessWidget {
                         Text(
                           'Всего позиций: ${provider.products.length}',
                           style: const TextStyle(
-                            color: AdminColors.accentBlue,
+                            color: AdminColors.accentPurple,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -61,7 +61,7 @@ class AdminProductsPage extends StatelessWidget {
                       icon: const Icon(Icons.add_box_rounded),
                       label: const Text('НОВЫЙ ТОВАР'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AdminColors.accentBlue,
+                        backgroundColor: AdminColors.accentPurple,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
@@ -218,7 +218,7 @@ class AdminProductsPage extends StatelessWidget {
                   Text(
                     product.brand?.name.toUpperCase() ?? 'БЕЗ БРЕНДА',
                     style: const TextStyle(
-                      color: AdminColors.accentBlue,
+                      color: AdminColors.accentPurple,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1,
@@ -274,7 +274,7 @@ class AdminProductsPage extends StatelessWidget {
                                         Text(
                                           variant.colorName.toUpperCase(),
                                           style: TextStyle(
-                                            color: AdminColors.accentBlue
+                                            color: AdminColors.accentPurple
                                                 .withValues(alpha: 0.7),
                                             fontSize: 9,
                                             fontWeight: FontWeight.bold,
@@ -347,7 +347,9 @@ class AdminProductsPage extends StatelessWidget {
                       ),
                       Container(
                         decoration: BoxDecoration(
-                          color: AdminColors.accentBlue.withValues(alpha: 0.1),
+                          color: AdminColors.accentPurple.withValues(
+                            alpha: 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: IconButton(
@@ -360,7 +362,7 @@ class AdminProductsPage extends StatelessWidget {
                           },
                           icon: const Icon(
                             Icons.edit_note_rounded,
-                            color: AdminColors.accentBlue,
+                            color: AdminColors.accentPurple,
                             size: 24,
                           ),
                         ),
