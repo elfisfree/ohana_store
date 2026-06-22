@@ -8,7 +8,7 @@ class OrderItem {
   final double priceAtPurchase;
   final Product product;
   final ProductVariant? variant;
-  final bool isKept;
+  final int quantityKept;
 
   OrderItem({
     required this.id,
@@ -17,7 +17,7 @@ class OrderItem {
     required this.priceAtPurchase,
     required this.product,
     this.variant,
-    required this.isKept,
+    required this.quantityKept,
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
@@ -32,7 +32,7 @@ class OrderItem {
               json['product_variants'] as Map<String, dynamic>,
             )
           : null,
-      isKept: json['is_kept'] ?? true,
+      quantityKept: json['quantity_kept'] ?? json['quantity'],
     );
   }
 }
@@ -55,6 +55,7 @@ class Order {
   final String? cancellationReason;
   final bool withFitting;
   final String paymentMethod;
+  final DateTime? paidAt;
 
   final String? courierPaymentType; // 'cash' или 'card'
   final String? courierReceiptNo;
@@ -79,6 +80,7 @@ class Order {
 
     this.courierPaymentType,
     this.courierReceiptNo,
+    this.paidAt,
 
     required this.paymentMethod,
   });
@@ -114,6 +116,7 @@ class Order {
       paymentMethod: json['payment_method'] ?? 'online',
       courierPaymentType: json['courier_payment_type'],
       courierReceiptNo: json['courier_receipt_no'],
+      paidAt: json['paid_at'] != null ? DateTime.parse(json['paid_at']) : null,
     );
   }
 }

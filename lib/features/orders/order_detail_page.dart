@@ -59,6 +59,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   final _adminReceiptController = TextEditingController();
 
   Map<String, bool> _keptItems = {};
+
+  Map<String, int> _itemsQuantities = {};
   bool _isInitialized = false;
 
   @override
@@ -594,7 +596,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
 
           if (order.paymentStatus == 'succeeded') ...[
-            const Divider(height: 30, color: Colors.white10),
+            const Divider(height: 30, color: Colors.black12),
             Text(
               'ДАННЫЕ ПЛАТЕЖА',
               style: TextStyle(
@@ -606,25 +608,24 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             const SizedBox(height: 8),
             _infoLine(
               'СПОСОБ',
+              // Если это онлайн-оплата, пишем КАРТА (ОНЛАЙН)
               order.courierPaymentType == 'card'
-                  ? 'БЕЗНАЛИЧНЫЙ (КАРТА)'
+                  ? 'КАРТА (ОНЛАЙН)'
                   : 'НАЛИЧНЫЕ',
               text,
               sub,
             ),
             _infoLine(
               'ЧЕК №',
-              order.courierReceiptNo ?? 'Оплата онлайн',
+              order.courierReceiptNo ?? 'Электронный чек',
               text,
               sub,
             ),
             _infoLine(
               'ДАТА ОПЛАТЫ',
-              order.deliveredAt != null
-                  ? DateFormat(
-                      'dd.MM.yyyy HH:mm',
-                    ).format(order.deliveredAt!.toLocal())
-                  : 'Не зафиксирована',
+              order.paidAt != null
+                  ? DateFormat('dd.MM.yyyy HH:mm').format(order.paidAt!)
+                  : 'Только что',
               text,
               sub,
             ),
@@ -846,7 +847,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Future<void> _issuePickupOrder(Order order, double finalAmount) async {
+  Future<void> _issuePickupOrder(Order order, double _) async {
+    // 1. Если оплата при получении, проверяем номер чека
     if (order.paymentStatus == 'pending' &&
         _adminReceiptController.text.trim().isEmpty) {
       AppNotifications.showError(context, 'Введите номер чека для отчетности');
@@ -854,35 +856,63 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
 
     try {
-      for (var entry in _keptItems.entries) {
+      // 2. РАССЧИТЫВАЕМ ИТОГОВУЮ СУММУ ЗАНОВО (по количеству штук)
+      // Берем только реально оставленное количество из нашей карты _itemsQuantities
+      double totalForKeptItems = 0;
+
+      // Проходим по всем товарам в заказе
+      for (var item in order.items) {
+        // Достаем из карты количество, которое админ оставил в списке
+        // Если в карте пусто, берем исходное количество из заказа
+        int keptCount = _itemsQuantities[item.id] ?? item.quantity;
+        totalForKeptItems += (item.priceAtPurchase * keptCount);
+      }
+
+      // Финальная сумма = Товары + Доставка (хотя при самовывозе она обычно 0)
+      double finalSumToPay = totalForKeptItems + order.deliveryCost;
+
+      // 3. ОБНОВЛЯЕМ КОЛИЧЕСТВО В БАЗЕ ДАННЫХ
+      for (var entry in _itemsQuantities.entries) {
         await supabase
             .from('order_items')
-            .update({'is_kept': entry.value})
+            .update({
+              'quantity_kept': entry.value,
+            }) // Теперь пишем ЧИСЛО, а не bool
             .eq('id', entry.key);
       }
+
+      // 4. ЗАВЕРШАЕМ ЗАКАЗ
       await supabase
           .from('orders')
           .update({
             'status': 'delivered',
             'payment_status': 'succeeded',
-            'actual_amount_paid': finalAmount,
-            'courier_payment_type':
-                _adminPaymentType, // Используем те же поля, что и для курьера
+            'actual_amount_paid': finalSumToPay, // Отправляем ПРАВИЛЬНУЮ сумму
+            'courier_payment_type': _adminPaymentType,
             'courier_receipt_no': _adminReceiptController.text.trim(),
             'delivered_at': DateTime.now().toIso8601String(),
+            'paid_at': DateTime.now().toIso8601String(),
           })
           .eq('id', widget.orderId);
 
-      AppNotifications.showSuccess(
-        context,
-        'Заказ выдан. Сумма: $finalAmount ₽',
-      );
-      setState(() {
-        _isInitialized = false;
-        _orderDataFuture = _fetchAllOrderData();
-      });
+      // 5. УВЕДОМЛЕНИЕ И ОБНОВЛЕНИЕ
+      if (mounted) {
+        AppNotifications.showSuccess(
+          context,
+          'Заказ выдан! Сумма оплаты: $finalSumToPay ₽',
+        );
+
+        setState(() {
+          _isInitialized =
+              false; // Сбрасываем флаг, чтобы при следующей загрузке данные обновились
+          _adminReceiptController.clear();
+          _orderDataFuture = _fetchAllOrderData();
+        });
+      }
     } catch (e) {
-      AppNotifications.showError(context, 'Ошибка: $e');
+      if (mounted) {
+        AppNotifications.showError(context, 'Ошибка при выдаче заказа: $e');
+      }
     }
   }
 
@@ -1077,43 +1107,43 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   Widget _buildProductTile(
     OrderItem item,
     Set<String> reviewedIds,
-    String status,
+    String orderStatus,
     bool staff,
     Color color,
     Color text,
     Color sub,
     NumberFormat f,
   ) {
-    final bool isReturned = !item.isKept;
-    final bool canReview =
-        !staff &&
-        status == 'delivered' &&
-        !reviewedIds.contains(item.id) &&
-        item.isKept;
+    final bool isReturnedFull = item.quantityKept == 0;
+    final bool isPartial =
+        item.quantityKept > 0 && item.quantityKept < item.quantity;
 
     String imageUrl = "";
     if (item.variant != null && item.variant!.imageUrls.isNotEmpty) {
       imageUrl = item.variant!.imageUrls.first;
+    } else if (item.product.variants.isNotEmpty) {
+      imageUrl = item.product.variants.first.imageUrls.first;
     }
 
-    return Opacity(
-      opacity: isReturned ? 0.5 : 1.0,
-      child: Container(
-        margin: const EdgeInsets.only(top: 10),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: staff ? AdminColors.card : Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: isReturned
-                ? Colors.red.withValues(alpha: 0.2)
-                : Colors.grey.shade200,
-          ),
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: isReturnedFull
+              ? Colors.red.withValues(alpha: 0.2)
+              : Colors.grey.shade200,
         ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          // ФОТО
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Opacity(
+              opacity: isReturnedFull ? 0.5 : 1.0,
               child: Image.network(
                 imageUrl,
                 width: 60,
@@ -1121,74 +1151,81 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 fit: BoxFit.cover,
               ),
             ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.product.name,
-                    style: TextStyle(
-                      color: text,
-                      fontWeight: FontWeight.bold,
-                      decoration: isReturned
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
+          ),
+          const SizedBox(width: 15),
+
+          // ИНФОРМАЦИЯ (Название, размер, выкуп)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.product.name,
+                  style: TextStyle(
+                    color: text,
+                    fontWeight: FontWeight.bold,
+                    decoration: isReturnedFull
+                        ? TextDecoration.lineThrough
+                        : null,
                   ),
-                  Text(
-                    'Размер: ${item.size.toInt()} ${isReturned ? " (ВОЗВРАТ)" : ""}',
-                    style: TextStyle(
-                      color: isReturned ? Colors.red : Colors.grey,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Размер: ${item.size.toInt()}',
+                      style: TextStyle(color: sub, fontSize: 11),
                     ),
-                  ),
-                  if (canReview)
-                    TextButton(
-                      onPressed: () async {
-                        final res = await context.push(
-                          '/add-review',
-                          extra: {
-                            'order_item_id': item.id,
-                            'product_id': item.product.id,
-                          },
-                        );
-                        if (res == true && mounted) {
-                          setState(() {
-                            _orderDataFuture = _fetchAllOrderData();
-                          });
-                        }
-                      },
-                      child: const Text(
-                        'ОСТАВИТЬ ОТЗЫВ',
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isReturnedFull
+                            ? Colors.red.withValues(alpha: 0.1)
+                            : AdminColors.accentBlue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        isReturnedFull
+                            ? 'ВОЗВРАТ'
+                            : 'ВЫКУП: ${item.quantityKept} из ${item.quantity} шт.',
                         style: TextStyle(
-                          fontSize: 11,
+                          color: isReturnedFull
+                              ? Colors.red
+                              : AdminColors.accentBlue,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
-            Text(
-              f.format(item.priceAtPurchase),
-              style: TextStyle(
-                color: text,
-                fontWeight: FontWeight.bold,
-                decoration: isReturned ? TextDecoration.lineThrough : null,
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                f.format(item.priceAtPurchase * item.quantityKept),
+                style: TextStyle(color: text, fontWeight: FontWeight.w900),
               ),
-            ),
-            if (widget.isAdmin && status == 'ready_for_pickup')
-              Switch(
-                value: _keptItems[item.id] ?? true,
-                activeColor: AdminColors.accentBlue,
-                onChanged: (val) {
-                  setState(() => _keptItems[item.id] = val);
-                },
-              ),
-          ],
-        ),
+              if (isPartial || isReturnedFull)
+                Text(
+                  'было: ${f.format(item.priceAtPurchase * item.quantity)}',
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 10,
+                    decoration: TextDecoration.lineThrough,
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1196,7 +1233,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   Widget _buildTotalCard(Order order, bool dark, Color text, NumberFormat f) {
     final bool isPriceChanged =
         order.status == 'delivered' &&
-        order.actualAmountPaid > 0 &&
         (order.actualAmountPaid - order.finalPrice).abs() > 1.0;
 
     return Container(
@@ -1232,6 +1268,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
             ],
           ),
+
           if (isPriceChanged) ...[
             const SizedBox(height: 12),
             Row(
@@ -1240,7 +1277,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 const Text(
                   'ФАКТИЧЕСКИ ОПЛАЧЕНО',
                   style: TextStyle(
-                    color: Colors.black,
+                    color: Colors.green,
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
                   ),
@@ -1248,7 +1285,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 Text(
                   f.format(order.actualAmountPaid),
                   style: const TextStyle(
-                    color: Colors.black,
+                    color: Colors.green,
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                   ),

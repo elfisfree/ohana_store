@@ -18,6 +18,7 @@ class AdminOrder {
   final String paymentStatus;
   final bool withFitting;
   final double actualAmountPaid;
+  final int totalItems;
 
   AdminOrder({
     required this.id,
@@ -29,6 +30,7 @@ class AdminOrder {
     required this.paymentStatus,
     required this.withFitting,
     required this.actualAmountPaid,
+    required this.totalItems,
   });
 
   factory AdminOrder.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,7 @@ class AdminOrder {
       paymentStatus: json['payment_status'] ?? 'pending',
       withFitting: json['with_fitting'] ?? false,
       actualAmountPaid: (json['actual_amount_paid'] as num?)?.toDouble() ?? 0.0,
+      totalItems: json['total_items'] ?? 0,
     );
   }
 }
@@ -268,6 +271,14 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
         Text(
           DateFormat('dd.MM.yyyy HH:mm').format(order.createdAt.toLocal()),
           style: const TextStyle(color: Colors.white38, fontSize: 12),
+        ),
+        Text(
+          '${order.totalItems} ТОВАР(ОВ)',
+          style: const TextStyle(
+            color: AdminColors.accentBlue,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );

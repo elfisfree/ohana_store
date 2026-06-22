@@ -23,6 +23,8 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
   final _receiptController = TextEditingController();
   bool _isSaving = false;
 
+  Map<String, int> _itemsQuantities = {};
+
   @override
   void initState() {
     super.initState();
@@ -40,11 +42,10 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
           .single();
 
       final order = Order.fromJson(response);
-
-      if (_itemsKeptStatus.isEmpty) {
+      if (_itemsQuantities.isEmpty) {
         setState(() {
           for (var item in order.items) {
-            _itemsKeptStatus[item.id] = true;
+            _itemsQuantities[item.id] = item.quantity;
           }
         });
       }
@@ -126,27 +127,25 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
     );
   }
 
-  // --- ЛОГИКА ЗАВЕРШЕНИЯ (ВРУЧЕНИЯ) ---
   Future<void> _completeDelivery(Order order) async {
-    if (_receiptController.text.isEmpty) {
+    if (order.paymentStatus != 'succeeded' && _receiptController.text.isEmpty) {
       AppNotifications.showError(context, 'Введите номер чека');
       return;
     }
-
     setState(() => _isSaving = true);
 
     try {
-      double finalSum = order.deliveryCost;
-      for (var item in order.items) {
-        if (_itemsKeptStatus[item.id] == true) {
-          finalSum += (item.priceAtPurchase * item.quantity);
-        }
-      }
+      double totalForKeptItems = 0;
 
-      for (var entry in _itemsKeptStatus.entries) {
+      _itemsQuantities.forEach((itemId, keptQty) {
+        final item = order.items.firstWhere((i) => i.id == itemId);
+        totalForKeptItems += (item.priceAtPurchase * keptQty);
+      });
+      double finalSumToPay = totalForKeptItems + order.deliveryCost;
+      for (var entry in _itemsQuantities.entries) {
         await supabase
             .from('order_items')
-            .update({'is_kept': entry.value})
+            .update({'quantity_kept': entry.value})
             .eq('id', entry.key);
       }
 
@@ -155,7 +154,7 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
           .update({
             'status': 'delivered',
             'payment_status': 'succeeded',
-            'actual_amount_paid': finalSum,
+            'actual_amount_paid': finalSumToPay,
             'courier_payment_type': _paymentType,
             'courier_receipt_no': _receiptController.text.trim(),
             'delivered_at': DateTime.now().toIso8601String(),
@@ -163,7 +162,10 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
           .eq('id', widget.orderId);
 
       if (mounted) {
-        AppNotifications.showSuccess(context, 'Заказ успешно завершен!');
+        AppNotifications.showSuccess(
+          context,
+          'Заказ завершен на сумму $finalSumToPay ₽',
+        );
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -202,11 +204,11 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
           final order = snapshot.data!;
 
           double currentTotal = order.deliveryCost;
-          _itemsKeptStatus.forEach((id, kept) {
-            if (kept) {
-              final item = order.items.firstWhere((i) => i.id == id);
-              currentTotal += (item.priceAtPurchase * item.quantity);
-            }
+          _itemsQuantities.forEach((itemId, keptQty) {
+            // Находим товар в списке по его ID
+            final item = order.items.firstWhere((i) => i.id == itemId);
+            // Прибавляем к итогу: цена * реально выкупленное кол-во
+            currentTotal += (item.priceAtPurchase * keptQty);
           });
 
           return Column(
@@ -264,19 +266,72 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
                         ),
                       ),
 
-                    Row(
-                      children: [
-                        _payTypeChip('КАРТА', 'card', Icons.credit_card),
-                        const SizedBox(width: 10),
-                        _payTypeChip(
-                          'НАЛИЧНЫЕ',
-                          'cash',
-                          Icons.payments_outlined,
+                    if (order.paymentStatus != 'succeeded') ...[
+                      const Text(
+                        'ДАННЫЕ ОБ ОПЛАТЕ',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.grey,
+                          fontSize: 12,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 15),
+                      ),
+                      const SizedBox(height: 15),
 
+                      Row(
+                        children: [
+                          _payTypeChip('КАРТА', 'card', Icons.credit_card),
+                          const SizedBox(width: 10),
+                          _payTypeChip(
+                            'НАЛИЧНЫЕ',
+                            'cash',
+                            Icons.payments_outlined,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
+
+                      TextField(
+                        controller: _receiptController,
+                        decoration: InputDecoration(
+                          labelText: 'НОМЕР ЧЕКА / ТРАНЗАКЦИИ',
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      // Если оплачено онлайн, показываем просто информационную плашку
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.green.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              color: Colors.green,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'ЗАКАЗ ОПЛАЧЕН ОНЛАЙН',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 15),
                     TextField(
                       controller: _receiptController,
                       decoration: InputDecoration(
@@ -373,34 +428,35 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
     );
   }
 
-  // Методы _buildFittingItem и _payTypeChip остаются такими же...
   Widget _buildFittingItem(OrderItem item, NumberFormat f) {
-    final bool isKept = _itemsKeptStatus[item.id] ?? true;
+    // Получаем текущее выбранное количество из локального состояния
+    // (в initState нужно будет создать Map<String, int> _itemsQuantities)
+    final int currentKept = _itemsQuantities[item.id] ?? item.quantity;
+    final bool isReturnedFull = currentKept == 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: isKept ? Colors.grey.shade50 : Colors.red.withValues(alpha: .05),
+        color: isReturnedFull
+            ? Colors.red.withValues(alpha: 0.05)
+            : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: isKept
-              ? Colors.grey.shade200
-              : Colors.redAccent.withValues(alpha: 0.3),
+          color: isReturnedFull
+              ? Colors.redAccent.withValues(alpha: 0.3)
+              : Colors.grey.shade200,
         ),
       ),
       child: Row(
         children: [
-          Opacity(
-            opacity: isKept ? 1 : 0.4,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                item.variant?.imageUrls.first ?? "",
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => const Icon(Icons.image),
-              ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              item.variant?.imageUrls.first ?? "",
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
             ),
           ),
           const SizedBox(width: 15),
@@ -412,22 +468,54 @@ class _CourierOrderPageState extends State<CourierOrderPage> {
                   item.product.name,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    decoration: isKept ? null : TextDecoration.lineThrough,
+                    decoration: isReturnedFull
+                        ? TextDecoration.lineThrough
+                        : null,
                   ),
                 ),
                 Text(
-                  '${item.size.toInt()} размер',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  '${item.size.toInt()} размер | Заказано: ${item.quantity} шт.',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ],
             ),
           ),
-          Switch(
-            value: isKept,
-            activeColor: Colors.green,
-            onChanged: (val) {
-              setState(() => _itemsKeptStatus[item.id] = val);
-            },
+
+          // --- НОВЫЙ БЛОК: СЧЕТЧИК ВЫКУПА ---
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.black12),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove, size: 16),
+                  onPressed: () {
+                    if (currentKept > 0) {
+                      setState(
+                        () => _itemsQuantities[item.id] = currentKept - 1,
+                      );
+                    }
+                  },
+                ),
+                Text(
+                  '$currentKept',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add, size: 16),
+                  onPressed: () {
+                    if (currentKept < item.quantity) {
+                      setState(
+                        () => _itemsQuantities[item.id] = currentKept + 1,
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),

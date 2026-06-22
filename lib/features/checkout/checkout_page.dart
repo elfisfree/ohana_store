@@ -545,8 +545,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               subtitle: const Text(
                                 'Наличными или картой курьеру после примерки',
                               ),
-                              value: PaymentMethod
-                                  .on_delivery, // ИЗМЕНЕНО: было cash
+                              value: PaymentMethod.on_delivery,
                               groupValue: _paymentMethod,
                               activeColor: Colors.black,
                               onChanged: (val) =>

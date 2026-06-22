@@ -26,7 +26,13 @@ class _MockPaymentPageState extends State<MockPaymentPage> {
     try {
       await supabase
           .from('orders')
-          .update({'payment_status': 'succeeded'})
+          .update({
+            'payment_status': 'succeeded',
+            'actual_amount_paid': widget.amount, // Сумма, которая была в заказе
+            'courier_payment_type': 'card', // Явно пишем, что это КАРТА
+            'paid_at': DateTime.now()
+                .toIso8601String(), // Фиксируем время платежа
+          })
           .eq('id', widget.orderId);
 
       if (mounted) {
