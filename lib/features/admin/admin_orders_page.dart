@@ -430,6 +430,14 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
       color = Colors.orangeAccent;
       text = 'ВОЗВРАТ (ЗАЯВКА)';
     }
+    if (status == 'return_rejected') {
+      color = Colors.orangeAccent;
+      text = 'ВОЗВРАТ(ОТКАЗ)';
+    }
+    if (status == 'ready_for_pickup') {
+      color = Colors.orangeAccent;
+      text = 'ГОТОВ К ВЫДАЧЕ';
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       decoration: BoxDecoration(

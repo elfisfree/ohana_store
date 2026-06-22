@@ -1,5 +1,5 @@
 // lib/features/delivery/courier_order_page.dart
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, prefer_final_fields
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -18,7 +18,6 @@ class CourierOrderPage extends StatefulWidget {
 class _CourierOrderPageState extends State<CourierOrderPage> {
   late Future<Order> _orderFuture;
 
-  final Map<String, bool> _itemsKeptStatus = {};
   String _paymentType = 'card';
   final _receiptController = TextEditingController();
   bool _isSaving = false;

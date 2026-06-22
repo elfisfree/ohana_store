@@ -39,18 +39,30 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
     }
   }
 
+  // --- ОБНОВЛЕННЫЙ МЕТОД ОБРАБОТКИ (С КОММЕНТАРИЕМ) ---
   Future<void> _handleReturn(
     String requestId,
     String orderId,
-    String newStatus,
-  ) async {
+    String newStatus, {
+    String? adminComment,
+  }) async {
     try {
+      // 1. Обновляем заявку в таблице return_requests
       await supabase
           .from('return_requests')
-          .update({'status': newStatus})
+          .update({
+            'status': newStatus,
+            if (adminComment != null) 'admin_comment': adminComment,
+          })
           .eq('id', requestId);
 
-      final orderStatus = newStatus == 'approved' ? 'returned' : 'delivered';
+      // 2. Определяем новый статус заказа
+      // Если одобрено -> returned (возвращено)
+      // Если отклонено -> return_rejected (в возврате отказано)
+      final String orderStatus = newStatus == 'approved'
+          ? 'returned'
+          : 'return_rejected';
+
       await supabase
           .from('orders')
           .update({'status': orderStatus})
@@ -59,7 +71,9 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
       if (mounted) {
         AppNotifications.showSuccess(
           context,
-          newStatus == 'approved' ? 'Возврат одобрен' : 'Заявка отклонена',
+          newStatus == 'approved'
+              ? 'Возврат одобрен'
+              : 'В возврате официально отказано',
         );
         setState(() {
           _returnsFuture = _fetchReturns();
@@ -68,6 +82,50 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
     } catch (e) {
       if (mounted) AppNotifications.showError(context, 'Ошибка: $e');
     }
+  }
+
+  // --- ДИАЛОГ ДЛЯ ВВОДА ПРИЧИНЫ ОТКАЗА ---
+  Future<String?> _showRejectReasonDialog() async {
+    final controller = TextEditingController();
+    return await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AdminColors.card,
+        title: const Text(
+          'УКАЖИТЕ ПРИЧИНУ ОТКАЗА',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Напр: Следы носки, повреждена упаковка...',
+            hintStyle: const TextStyle(color: Colors.white24),
+            filled: true,
+            fillColor: AdminColors.sidebar,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ОТМЕНА'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('ПОДТВЕРДИТЬ ОТКАЗ'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showReturnDetails(dynamic r) {
@@ -97,7 +155,6 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                       color: AdminColors.accentBlue,
                       fontWeight: FontWeight.w900,
                       fontSize: 14,
-                      letterSpacing: 1.2,
                     ),
                   ),
                   IconButton(
@@ -108,7 +165,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
               ),
               const SizedBox(height: 20),
               _dialogRow('Клиент:', r['customer_name']),
-              _dialogRow('Сумма возврата:', f.format(r['order_amount'])),
+              _dialogRow('Сумма заказа:', f.format(r['order_amount'])),
               _dialogRow(
                 'Дата заявки:',
                 DateFormat(
@@ -119,7 +176,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
               const Divider(color: Colors.white10, height: 40),
 
               const Text(
-                'ПРИЧИНА ВОЗВРАТА:',
+                'ПРИЧИНА ВОЗВРАТА (ОТ КЛИЕНТА):',
                 style: TextStyle(
                   color: Colors.white54,
                   fontSize: 11,
@@ -138,48 +195,54 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                   r['reason'],
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 15,
+                    fontSize: 14,
                     height: 1.5,
                   ),
                 ),
               ),
 
               const SizedBox(height: 30),
+
+              // Кнопки действий
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () =>
-                          context.push('/admin/orders/${r['order_id']}'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white24),
-                      ),
-                      child: const Text('ПЕРЕЙТИ В ЗАКАЗ'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-              Row(
-                children: [
+                  // Кнопка ОТКЛОНИТЬ
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _handleReturn(r['id'], r['order_id'], 'rejected');
+                      onPressed: () async {
+                        Navigator.pop(context); // Закрываем основное окно
+                        final reason = await _showRejectReasonDialog();
+                        if (reason != null && reason.isNotEmpty) {
+                          _handleReturn(
+                            r['id'],
+                            r['order_id'],
+                            'rejected',
+                            adminComment: reason,
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent.withValues(
                           alpha: 0.1,
                         ),
                         foregroundColor: Colors.redAccent,
-                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(
+                            color: Colors.redAccent,
+                            width: 0.5,
+                          ),
+                        ),
                       ),
-                      child: const Text('ОТКЛОНИТЬ'),
+                      child: const Text(
+                        'ОТКЛОНИТЬ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
+                  // Кнопка ОДОБРИТЬ
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
@@ -189,11 +252,31 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.greenAccent,
                         foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text('ОДОБРИТЬ'),
+                      child: const Text(
+                        'ОДОБРИТЬ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 15),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () =>
+                      context.push('/admin/orders/${r['order_id']}'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white38,
+                    side: const BorderSide(color: Colors.white10),
+                  ),
+                  child: const Text('ПЕРЕЙТИ В КАРТОЧКУ ЗАКАЗА'),
+                ),
               ),
             ],
           ),
@@ -202,6 +285,7 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
     );
   }
 
+  // (Методы _dialogRow, build и _actionBtn остаются как были...)
   Widget _dialogRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -232,7 +316,6 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
       symbol: '₽',
       decimalDigits: 0,
     );
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Padding(
@@ -274,7 +357,6 @@ class _AdminReturnsPageState extends State<AdminReturnsPage> {
                         ),
                       );
                     }
-
                     final returns = snapshot.data!;
                     if (returns.isEmpty) {
                       return const Center(

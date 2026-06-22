@@ -1,9 +1,8 @@
 // lib/features/orders/order_detail_page.dart
-// ignore_for_file: use_build_context_synchronously, unrelated_type_equality_checks
+// ignore_for_file: use_build_context_synchronously, unrelated_type_equality_checks, prefer_final_fields
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ohana_store/core/admin_theme.dart';
 import 'package:ohana_store/core/utils/app_notifications.dart';
@@ -360,6 +359,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         return 'ВОЗВРАЩЕНО';
       case 'ready_for_pickup':
         return 'ГОТОВ К ВЫДАЧЕ';
+      case 'return_rejected':
+        return 'В ВОЗВРАТЕ ОТКАЗАНО';
       default:
         return status.toUpperCase();
     }
@@ -941,6 +942,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     if (status == 'pending' || status == 'processing') {
       return Column(
         children: [
+          const SizedBox(height: 12),
           ElevatedButton(
             onPressed: () {
               if (status == 'pending') {
@@ -950,6 +952,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 _updateOrderStatus(isPickup ? 'ready_for_pickup' : 'shipped');
               }
             },
+
             style: ElevatedButton.styleFrom(
               // Динамический цвет: Синий для начала, Фиолетовый для выдачи, Зеленый для курьера
               backgroundColor: status == 'pending'

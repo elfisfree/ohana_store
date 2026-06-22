@@ -57,6 +57,12 @@ class _OrdersPageState extends State<OrdersPage> {
         return 'Доставлен';
       case 'cancelled':
         return 'Отменён';
+      case 'return_rejected':
+        return 'Возврат не одобрен';
+      case 'ready_for_pickup':
+        return 'Готов к выдаче';
+      case 'returned':
+        return 'Возврат';
       default:
         return status;
     }

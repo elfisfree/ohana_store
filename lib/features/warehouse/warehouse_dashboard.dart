@@ -47,7 +47,7 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2),
         ),
         centerTitle: true,
-        backgroundColor: Colors.blue.shade900,
+        backgroundColor: Color(0xFF673AB7),
         foregroundColor: Colors.white,
         elevation: 5,
         actions: [
@@ -67,7 +67,7 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: Colors.blue),
+              child: CircularProgressIndicator(color: Color(0xFF673AB7)),
             );
           }
           if (snapshot.hasError) {
@@ -152,7 +152,7 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: isProcessing
-                                  ? Colors.blue
+                                  ? Color(0xFF673AB7)
                                   : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -162,7 +162,7 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
                                   : Icons.new_releases_outlined,
                               color: isProcessing
                                   ? Colors.white
-                                  : Colors.blue.shade900,
+                                  : Color(0xFF673AB7),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -215,7 +215,7 @@ class _WarehouseDashboardState extends State<WarehouseDashboard> {
       child: Text(
         isNew ? 'НОВЫЙ' : 'В СБОРКЕ',
         style: TextStyle(
-          color: isNew ? Colors.orange.shade900 : Colors.blue.shade900,
+          color: isNew ? Colors.orange.shade900 : Color(0xFF673AB7),
           fontSize: 11,
           fontWeight: FontWeight.bold,
         ),
