@@ -543,7 +543,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               subtitle: const Text(
-                                'Наличными или картой курьеру после примерки',
+                                'Наличными или картой после примерки',
                               ),
                               value: PaymentMethod.on_delivery,
                               groupValue: _paymentMethod,
