@@ -101,12 +101,16 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         CircleAvatar(
-                          radius: 45,
-                          backgroundColor: Colors.white.withValues(alpha: 0.9),
-                          child: Icon(
-                            Icons.shopping_bag_outlined,
-                            size: 50,
-                            color: Theme.of(context).primaryColor,
+                          radius: 60,
+                          backgroundColor: Color.fromARGB(0, 104, 58, 183),
+                          child: Padding(
+                            padding: const EdgeInsets.all(
+                              12.0,
+                            ), // Отступ, чтобы логотип не касался краев
+                            child: Image.asset(
+                              'assets/icon_5.png',
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 20),
