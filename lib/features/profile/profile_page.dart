@@ -5,9 +5,25 @@ import 'package:intl/intl.dart';
 import 'package:ohana_store/features/profile/profile_provider.dart';
 import 'package:ohana_store/main.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
+
+  Future<void> _contactSupport(String type) async {
+    final Uri url = type == 'email'
+        ? Uri.parse('mailto:ohanasupport@gmail.com?subject=OhanaStore Support')
+        : Uri.parse('tel:89867902046');
+
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url);
+      }
+    } catch (e) {
+      // Если на десктопе нет почтового клиента или звонилки
+      print('Ошибка связи: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +216,48 @@ class ProfilePage extends StatelessWidget {
                       onTap: () => context.push('/profile/orders'),
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 16),
+
+                    const Center(
+                      child: Text(
+                        'СЛУЖБА ПОДДЕРЖКИ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.grey,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          _supportTile(
+                            icon: Icons.alternate_email,
+                            title: 'Написать нам',
+                            subtitle: 'ohanasupport@gmail.com',
+                            onTap: () => _contactSupport('email'),
+                          ),
+                          const Divider(height: 1, indent: 60),
+                          _supportTile(
+                            icon: Icons.headset_mic_outlined,
+                            title: 'Горячая линия',
+                            subtitle: '8 (986) 790-20-46',
+                            onTap: () => _contactSupport('phone'),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
                     GestureDetector(
                       onTap: isLoading
                           ? null
@@ -256,6 +313,34 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _supportTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      leading: CircleAvatar(
+        backgroundColor: const Color(0xFF673AB7).withValues(alpha: 0.1),
+        child: Icon(icon, color: const Color(0xFF673AB7), size: 20),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(color: Colors.grey, fontSize: 12),
+      ),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 12,
+        color: Colors.grey,
       ),
     );
   }
