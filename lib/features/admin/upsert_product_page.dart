@@ -502,9 +502,25 @@ class _UpsertProductPageState extends State<UpsertProductPage> {
                 ),
               ),
               TextButton(
-                onPressed: () => setState(
-                  () => variant.stockData.add({'size': 40.0, 'qty': 0}),
-                ),
+                onPressed: () {
+                  try {
+                    setState(() {
+                      final Map<String, dynamic> newRow = {
+                        'size': 40.0,
+                        'qty': 0,
+                      };
+                      variant.stockData.add(newRow);
+                    });
+                  } catch (e) {
+                    debugPrint('Ошибка при добавлении размера: $e');
+                    if (mounted) {
+                      AppNotifications.showError(
+                        context,
+                        'Ошибка интерфейса. Попробуйте перезагрузить страницу.',
+                      );
+                    }
+                  }
+                },
                 child: const Text('+ РАЗМЕР'),
               ),
             ],
